@@ -34,6 +34,7 @@ public class PanelPower extends JPanel{
 	JScrollPane resultsTextScroll;
 	JButton saveButton;
 	JFileChooser fileChooser;
+	JButton textEaser;
 	
 	PanelPower(){
 		setLayout(new GridBagLayout());
@@ -110,7 +111,10 @@ public class PanelPower extends JPanel{
 
 		calculateButton.addActionListener(p -> {
 			Map<Double, Integer> powerCurve;
+			Map<Double, Integer> totalGeneratedPower = new TreeMap<Double, Integer>();
 			Map<String, Map<Double, Integer>> calculatedPower = new TreeMap<String, Map<Double, Integer>>();
+
+			
 			String[] powerCurveParameters = powerCurveList.getSelectedItem().toString().split(" ");
 		
 			loadedFiles.forEach((k,v) -> rowFileAnalyzer.fileReader(v));
@@ -120,6 +124,8 @@ public class PanelPower extends JPanel{
 				powerCurve = dbAccess.selectPowerCurve(wtgList.getSelectedIndex()+1, powerCurveParameters[0]);
 				calculatedPower = rowFileAnalyzer.getGeneratedPower(powerCurve);
 	
+				resultsText.append("Results generated for: " + wtgList.getSelectedItem()+", " + powerCurveList.getSelectedItem()+"\n");
+				
 				//	Display in resultsText title of columns with generated power
 				for(int i = 0 ; i<47; i++) resultsText.append(" ");
 				powerCurve.forEach((k, v) -> {
@@ -137,12 +143,42 @@ public class PanelPower extends JPanel{
 				String fileName = file.getName();
 				resultsText.append(fileName+"\t");
 				v.forEach((u,w) -> {
-					if(u>=3){
-						resultsText.append(w+"\t");
-					}
+					if(totalGeneratedPower.get(u) == null){
+						totalGeneratedPower.put(u, w);
+					} else {
+						totalGeneratedPower.put(u, w+totalGeneratedPower.get(u));
+					}		
+//					totalGeneratedPower.put(u, w);
+					if(u>=3 & u<=25){			
+//						resultsText.append(w+"\t");	
+						resultsText.append(convertkWhToMWh(w, 100)+"\t");
+					} 
 				});
 				resultsText.append("\n");
 			});
+			
+			resultsText.append("\nGenerated electricity MWh");
+			for(int i = 0 ; i<10; i++) resultsText.append(" ");
+			totalGeneratedPower.forEach((k, v) -> {
+				if(k>=3 & k<=25){
+//					resultsText.append("\t"+v);					
+					resultsText.append("\t"+convertkWhToMWh(v,100));
+				}
+			});
+			resultsText.append("\n");
+			
+			//	Display full load hours
+			resultsText.append("Full Load Hours [MWh/y]");
+			for(int i = 0 ; i<10; i++) resultsText.append(" ");
+			totalGeneratedPower.forEach((k, v) -> {
+				if(k>=3 & k<=25){	
+					resultsText.append("\t"+convertkWhToMWhFullLoad(v, 100));			
+				}
+			});
+			resultsText.append("\n\n");
+			
+			
+			
 		});
 		
 		setPosition(0, 5, 5, 1);
@@ -159,8 +195,21 @@ public class PanelPower extends JPanel{
 		setPosition(4, 10, 1, 1);
 		add(saveButton, gbc);
 		
+		//	remove actual content of resultsText
+		textEaser = new JButton("Clean");
+		textEaser.addActionListener(p->resultsText.setText(""));
+		setPosition(4,11,1,1);
+		add(textEaser, gbc);
+		
 	}
 	
+	/**
+	 * Method to help setup positions of elements in panel 
+	 * @param xPos - column position
+	 * @param yPos - row position
+	 * @param xWidth - how many columns element will get
+	 * @param yHeight - how many rows element will get
+	 */
 	public void setPosition(int xPos, int yPos, int xWidth, int yHeight){
 		gbc.gridx = xPos;
 		gbc.gridy = yPos;
@@ -168,6 +217,33 @@ public class PanelPower extends JPanel{
 		gbc.gridheight = yHeight;
 	}
 	
+	/**
+	 * Method to convert generated energy from kWh to general unit of MWh
+	 * @param kWh - amount of generated kWh
+	 * @param precision - how many digits after comma should be included in result
+	 * @return doubleMWh - converted energy in MWh  
+	 */
+	public double convertkWhToMWhFullLoad(int kWh, int precision){
+		double doubleMWh = (double) kWh;
+		doubleMWh = precision*(doubleMWh/dbAccess.getWTGnominalPower(wtgList.getSelectedIndex()+1));
+		int intMWh = (int) doubleMWh/1;
+		doubleMWh = (double) intMWh / precision;		
+		return doubleMWh;
+	}
+	
+	/**
+	 * Method to convert generated energy from kWh to general unit of MWh
+	 * @param kWh - amount of generated kWh
+	 * @param precision - how many digits after comma should be included in result
+	 * @return doubleMWh - converted energy in MWh  
+	 */
+	public double convertkWhToMWh(int kWh, int precision){
+		double doubleMWh = (double) kWh;
+		doubleMWh = precision*(doubleMWh/1000);
+		int intMWh = (int) doubleMWh/1;
+		doubleMWh = (double) intMWh / precision;		
+		return doubleMWh;
+	}
 	
 	
 }

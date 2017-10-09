@@ -25,6 +25,9 @@ public class RowFileAnalyzer {
 	Map<String, List<MeasuredWindData>> measuredWindDataMap = new TreeMap<String, List<MeasuredWindData>>();
 	Map<String, Map<Double, Integer>> finalGeneratedPower = new TreeMap<String, Map<Double, Integer>>();
 	
+	// eventually remove
+	Map<String, Map<Double, Double>> finalGeneratedPowerD = new TreeMap<String, Map<Double, Double>>();
+	
 	public RowFileAnalyzer(){
 	
 	}
@@ -46,12 +49,12 @@ public class RowFileAnalyzer {
 			int hourlySum80m = 0;
 			int hourlySum60m = 0;
 			int hourlySum30m = 0;
-			int cnt = 1;
+			int cnt = 0;
 	
 			
 			FileInputStream fileInputStream = new FileInputStream(fileWithWindData);
 			BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(fileInputStream));
-			long timeStart = System.currentTimeMillis();
+//			long timeStart = System.currentTimeMillis();
 	
 			while((fileContent = bufferedReader.readLine() ) != null){
 				String[] analyzedRow = fileContent.split("\\t");
@@ -66,6 +69,7 @@ public class RowFileAnalyzer {
 						cnt++;	
 					} else{ 
 //						logger.info("{}\t{}\t{}\t{}\t{}", dateStamp, previousHour, hourlySum80m, hourlySum60m, hourlySum30m);
+						//	mean wind speed multiply by 10 to keep precision of mean wind speed to two numbers after comma. Final mean wind speed is received by additional dividing by 100
 						measuredWindDataList.add(new MeasuredWindData(dateStamp, previousHour, (10*hourlySum80m)/cnt, (10*hourlySum60m)/cnt, (10*hourlySum30m)/cnt));	
 						hourlySum80m = Integer.valueOf(analyzedRow[2]);
 						hourlySum60m = Integer.valueOf(analyzedRow[5]);
@@ -75,8 +79,8 @@ public class RowFileAnalyzer {
 					previousHour =  tempHourTab[0];
 				}	
 			}
-			long totalTime = System.currentTimeMillis() - timeStart;
-			System.out.println("czasOperacji " + totalTime);
+//			long totalTime = System.currentTimeMillis() - timeStart;
+//			System.out.println("czasOperacji " + totalTime);
 //			logger.info("{}\t{}\t{}\t{}\t{}", dateStamp, previousHour, hourlySum80m, hourlySum60m, hourlySum30m);
 			measuredWindDataList.add(new MeasuredWindData(dateStamp, previousHour, (10*hourlySum80m)/cnt, (10*hourlySum60m)/cnt, (10*hourlySum30m)/cnt));	
 			
@@ -156,7 +160,11 @@ public class RowFileAnalyzer {
 	public Map<Double, Integer> calculateProduction(List<MeasuredWindData> measuredData, Map<Double, Integer> tempPowerCurveMap){
 		Map<Double, Integer> generatedPower = new TreeMap<Double, Integer>();
 		measuredData.forEach(p -> {
-			double z = (p.getvMean80m()/60);
+			//	to get real mean wind speed with correct precision mean wind speed has to be divided by 100 - like using scale factor 0.01
+			double z = (p.getvMean80m()/100);
+			if(z>25){
+			System.out.println("z: " + z + ", " + p.getDateStamp() +", " + p.getHour()+" - " + p.getvMean80m());
+			}
 			if(generatedPower.get(z) == null) {
 				generatedPower.put(z, tempPowerCurveMap.get(z));
 			} else {
@@ -166,6 +174,5 @@ public class RowFileAnalyzer {
 		return generatedPower;		
 	}
 	
-
 
 }
