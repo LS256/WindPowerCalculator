@@ -3,8 +3,13 @@ package pl.codeforfun;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,10 +18,18 @@ import java.util.TreeMap;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
+import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
+
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartUtilities;
+import org.jfree.chart.JFreeChart;
+import org.jfree.data.general.DefaultPieDataset;
+import org.jfree.ui.ApplicationFrame;
+import org.jfree.ui.RefineryUtilities;
 
 public class PanelPower extends JPanel{
 	
@@ -35,6 +48,10 @@ public class PanelPower extends JPanel{
 	JButton saveButton;
 	JFileChooser fileChooser;
 	JButton textEaser;
+	JButton chartCreator;
+	File file; 
+	Map<Double, Integer> totalGeneratedPower; 
+	Map<String, Map<Double, Integer>> totalGeneratedPowerChart = new TreeMap<String, Map<Double, Integer>>();
 	
 	PanelPower(){
 		setLayout(new GridBagLayout());
@@ -83,7 +100,7 @@ public class PanelPower extends JPanel{
 		loadButton.addActionListener(p->{
 			fileChooser = new JFileChooser();
 			if(fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION){
-				File file = fileChooser.getSelectedFile();
+				file = fileChooser.getSelectedFile();
 				if(loadedFiles.get(file.getName()) == null){
 					analyzedFiles.append(file.getName()+"\n");
 					loadedFiles.put(file.getName(), file.getPath());
@@ -111,9 +128,11 @@ public class PanelPower extends JPanel{
 
 		calculateButton.addActionListener(p -> {
 			Map<Double, Integer> powerCurve;
-			Map<Double, Integer> totalGeneratedPower = new TreeMap<Double, Integer>();
+			totalGeneratedPower = new TreeMap<Double, Integer>();
 			Map<String, Map<Double, Integer>> calculatedPower = new TreeMap<String, Map<Double, Integer>>();
-
+			List<Double> sumFullLoadHours = new ArrayList<Double>();
+			List<Double> sumGeneratedPower = new ArrayList<Double>();
+			
 			
 			String[] powerCurveParameters = powerCurveList.getSelectedItem().toString().split(" ");
 		
@@ -161,8 +180,10 @@ public class PanelPower extends JPanel{
 			for(int i = 0 ; i<10; i++) resultsText.append(" ");
 			totalGeneratedPower.forEach((k, v) -> {
 				if(k>=3 & k<=25){
-//					resultsText.append("\t"+v);					
-					resultsText.append("\t"+convertkWhToMWh(v,100));
+//					resultsText.append("\t"+v);	
+					double generatedPower = convertkWhToMWh(v,100);
+					sumGeneratedPower.add(generatedPower);
+					resultsText.append("\t"+generatedPower);
 				}
 			});
 			resultsText.append("\n");
@@ -170,13 +191,18 @@ public class PanelPower extends JPanel{
 			//	Display full load hours
 			resultsText.append("Full Load Hours [MWh/y]");
 			for(int i = 0 ; i<10; i++) resultsText.append(" ");
+
 			totalGeneratedPower.forEach((k, v) -> {
-				if(k>=3 & k<=25){	
-					resultsText.append("\t"+convertkWhToMWhFullLoad(v, 100));			
+				if(k>=3 & k<=25){
+					double fullLoadHours = convertkWhToMWhFullLoad(v, 100);
+					sumFullLoadHours.add(fullLoadHours);
+					resultsText.append("\t"+fullLoadHours);			
 				}
 			});
 			resultsText.append("\n\n");
-			
+			double fullLoadHoursSum = sumFullLoadHours.stream().mapToDouble(r -> r.doubleValue()).sum();
+			double generatedEnergySum = sumGeneratedPower.stream().mapToDouble(r -> r.doubleValue()).sum();
+			System.out.println("full load hours sum is: " + fullLoadHoursSum +"[MWh/y], total generater Power " + generatedEnergySum+"[MWh]");
 			
 			
 		});
@@ -192,15 +218,48 @@ public class PanelPower extends JPanel{
 		
 		//	create button for saving data from resultsText
 		saveButton = new JButton("Save");
+		saveButton.addActionListener(p -> {
+			fileChooser = new JFileChooser();
+			fileChooser.setCurrentDirectory(new File("C://Users/"));
+			if(fileChooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION){
+				try {
+					FileWriter fileWriter = new FileWriter(fileChooser.getSelectedFile()+".txt");
+					BufferedWriter bufferedReader = new BufferedWriter(fileWriter);
+					bufferedReader.write(resultsText.getText());
+					bufferedReader.close();
+					fileWriter.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}			
+		});
 		setPosition(4, 10, 1, 1);
 		add(saveButton, gbc);
 		
 		//	remove actual content of resultsText
 		textEaser = new JButton("Clean");
 		textEaser.addActionListener(p->resultsText.setText(""));
-		setPosition(4,11,1,1);
+		setPosition(4, 11, 1, 1);
 		add(textEaser, gbc);
-		
+
+		// Create chart with measure data
+		chartCreator = new JButton("Chart");
+		chartCreator.addActionListener(p -> {
+			final String keyDescription = wtgList.getSelectedItem()+"-" + powerCurveList.getSelectedItem();
+			totalGeneratedPowerChart.put(keyDescription, totalGeneratedPower);
+			totalGeneratedPowerChart.forEach((k, v) -> {
+				v.forEach((u, t) -> {
+					System.out.println("iniciuj: " + k + " - " + u + " - " + v);
+				});
+			});
+			
+			MyChartPanel myChartPanel = new MyChartPanel("wind turbines in action", "generated power", totalGeneratedPowerChart);
+			myChartPanel.pack();
+			RefineryUtilities.centerFrameOnScreen(myChartPanel);
+			myChartPanel.setVisible(true);
+		});
+		setPosition(4, 12, 1, 1);
+		add(chartCreator, gbc);
 	}
 	
 	/**
@@ -244,6 +303,6 @@ public class PanelPower extends JPanel{
 		doubleMWh = (double) intMWh / precision;		
 		return doubleMWh;
 	}
-	
+
 	
 }
