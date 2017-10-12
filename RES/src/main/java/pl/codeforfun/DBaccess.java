@@ -119,10 +119,34 @@ public class DBaccess {
 				 }
 		} catch(Exception e){
 			throw e;
-		} 
+		} finally {
+			connection.close();
+		}
 		
 		return tempWtgPowerModeList;
 	}
+	
+	/**
+	 * method to get nominal power of wind turbine chosen in wtgList ComboBox
+	 * @param ew_id - id of turbine in data base
+	 * @return nominalPower - nominal power of wind turbine in kW stored in DB
+	 */
+	public int getNominalWtgPower(int ew_id) throws Exception{
+		int nominalPower=0;
+		try {
+			readDataBase("SELECT wtg_power FROM wtg WHERE id="+ew_id);
+			
+				 while(resultSet.next()){
+					 nominalPower = resultSet.getInt(1);	 
+				 }
+		} catch(Exception e){
+			throw e;
+		} finally {
+			connection.close();
+		}
+		return nominalPower;
+	}
+	
 	
 	/** 
 	 * Method to get parameters of power curve described by windTurbine ID and it's mode description
@@ -151,6 +175,5 @@ public class DBaccess {
 		}
 		return powerCurveMap;
 	} 
-	
 
 }

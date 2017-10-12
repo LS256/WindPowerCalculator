@@ -1,15 +1,19 @@
 package pl.codeforfun;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.io.File;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.axis.AxisLocation;
+import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.data.category.CategoryDataset;
 import org.jfree.data.category.DefaultCategoryDataset;
@@ -22,90 +26,100 @@ import org.jfree.chart.ChartPanel;
 public class MyChartPanel extends JDialog {	//	ApplicationFrame {
 	PanelPower panelPower = new PanelPower();
 	
-	MyChartPanel(String applicationTitle , String chartTitle, Map<String, Map<Double, Integer>> generatedPowerMap){
-//		super(applicationTitle);
+	/**
+	 * Constructor for preparing chart with detailed yield for every wind speed
+	 * @param chartTitle - tile to chart
+	 * @param generatedPowerMap - map with generated power for each chosen wind generator
+	 */
+	MyChartPanel(String chartTitle, Map<String, Map<Double, Integer>> generatedPowerMap){
 		JFreeChart barChart = ChartFactory.createBarChart(chartTitle, "Mean Wind Speed [m/s]", "Generated Power [MWh]", createDataset(generatedPowerMap), PlotOrientation.VERTICAL, true, true, false);
-	    ChartPanel chartPanel = new ChartPanel(barChart);      
-	    chartPanel.setPreferredSize(new java.awt.Dimension( 1000 , 367 ) );        	
+    
 	    
-	    JLabel test = new JLabel("Hello world by Adel Hello world by Adel Hello world by Adel Hello world by Adel");
-	    chartPanel.add(test, BorderLayout.SOUTH);
+	    CategoryPlot plot = barChart.getCategoryPlot();
+        plot.setBackgroundPaint(new Color(0xEE, 0xEE, 0xFF));
+        plot.setDomainAxisLocation(AxisLocation.BOTTOM_OR_RIGHT);
+	    
+	    
+	    ChartPanel chartPanel = new ChartPanel(barChart);  
+	    chartPanel.setPreferredSize(new java.awt.Dimension( 1000 , 367 ) );        		    
 	    add(chartPanel);
-	    
-	    
-
-	    
-	    
-	    
 	    this.setDefaultCloseOperation(this.DISPOSE_ON_CLOSE);
-	    
-//	    generatedPowerMap.forEach((k, v) -> System.out.println(k+", " + v));
-	    
 	}
 	
+
+	/**
+	 * Constructor for preparing chart with summary of main parameters like yield and full load hours
+	 * @param chartTitle - tile to chart
+	 * @param generatedPowerMap - map with generated power for each chosen wind generator
+	 */
+	MyChartPanel(Map<String, Map<Double, Integer>> totalGeneratedPowerChart, double nominalPower){
+		JFreeChart barChart = ChartFactory.createBarChart("Summary of main results", "Chosen wind turbine", "Generated Power [MWh]", createMainDataset(totalGeneratedPowerChart, nominalPower), PlotOrientation.VERTICAL, true, true, false);
+	    ChartPanel chartPanel = new ChartPanel(barChart);      
+	    chartPanel.setPreferredSize(new java.awt.Dimension( 500 , 367 ) );        	
+	    
+	    add(chartPanel);
+	    
+	    this.setDefaultCloseOperation(this.DISPOSE_ON_CLOSE);
+	}
+	
+	
+	/**
+	 * Create data set for chart with detailed information about generated power for each wind speed
+	 * @param tempGeneratedPowerMap - map with generated power for each chosen wind generator
+	 * @return dataset - data set with generated power for each chosen wind generator
+	 */
 	private CategoryDataset createDataset(Map<String, Map<Double, Integer>> tempGeneratedPowerMap){
 	    final DefaultCategoryDataset dataset = new DefaultCategoryDataset();  
-//		panelPower = new PanelPower();
-//		panelPower.totalGeneratedPower.forEach((k, v) -> {
-//	//		dataset.addValue(v, "Full Load", "speed");
-//			System.out.println(k+" - " + v);
-//		});
-//		   return dataset; 
-	     
-			final String description = "Generated Power";
-			final String turbineType = "Gamesa G114";
-					
+			
 			tempGeneratedPowerMap.forEach((k, v) ->{
 				v.forEach((u, t) -> {
-					System.out.println("rysuj : " + k + " - " + u + " - " + t);
 					int tempT;
 					if(t == null){
 						tempT = 0;
 					}
 					else {
 						tempT = t/1000;
+						dataset.addValue(tempT , k, u);
 					}
-					dataset.addValue(tempT , k, u);
 				});
 				
 			});
-			
-			
-//			
-//			tempGeneratedPowerMap.forEach((k,v) -> {
-//				int tempV;
-//				if(v == null){
-//					tempV = 0;
-//				}
-//				else {
-//					tempV = v/1000;
-//				}
-//				dataset.addValue(tempV , turbineType, k);
-//			});
-			
-			
-//		final String fiat = "FIAT";        
-//	      final String audi = "AUDI";        
-//	      final String ford = "FORD";        
-//	      final String speed = "Speed";        
-//	      final String millage = "Millage";        
-//	      final String userrating = "User Rating";        
-//	      final String safety = "safety";        
-//	
-//	      dataset.addValue( 1.0 , fiat , speed );        
-//	      dataset.addValue( 3.0 , fiat , userrating );        
-//	      dataset.addValue( 5.0 , fiat , millage ); 
-//	      dataset.addValue( 5.0 , fiat , safety );           
-//	      dataset.addValue( 5.0 , audi , speed );        
-//	      dataset.addValue( 6.0 , audi , userrating );       
-//	      dataset.addValue( 10.0 , audi , millage );        
-//	      dataset.addValue( 4.0 , audi , safety );
-//
-//	      dataset.addValue( 4.0 , ford , speed );        
-//	      dataset.addValue( 2.0 , ford , userrating );        
-//	      dataset.addValue( 3.0 , ford , millage );        
-//	      dataset.addValue( 6.0 , ford , safety );               
-
 	      return dataset; 
 	   }
+	
+	/**
+	 * Create data set for chart with Main information about generated power and full load hours for each wind speed
+	 * @param tempGeneratedPowerMap - map with generated power for each chosen wind generator
+	 * @param nominalPower - nominal power for chosen wind generator
+	 * @return mainDataset - data set with generated power for each chosen wind generator
+	 */	
+	private CategoryDataset createMainDataset(Map<String, Map<Double, Integer>> totalGeneratedPowerChart, double nominalPower){
+		  final DefaultCategoryDataset mainDataset = new DefaultCategoryDataset();
+	
+			totalGeneratedPowerChart.forEach((k,v) -> {
+				int powerSum = v.values().stream().collect(Collectors.summingInt(Integer::intValue))/1000;
+				int fullLoadHours = (int) (powerSum/(nominalPower));
+				
+				mainDataset.addValue(powerSum, "Generated Power", k);
+				mainDataset.addValue(fullLoadHours, "Full Load hours", k);
+			});
+		  
+
+		
+		return mainDataset; 
+	}
+	
+	
+	
+//	private CategoryDataset createMainDataset(Map<String, Map<Double, Integer>> tempGeneratedPowerMap){
+//		  final DefaultCategoryDataset mainDataset = new DefaultCategoryDataset(); 
+//		  tempGeneratedPowerMap.forEach((k, v) ->{
+//			  v.forEach((t,u) -> {
+//			  System.out.println("dla "+k+" wynik to: " + u);
+//			  });
+//		  });
+//		  
+//		
+//		return mainDataset; 
+//	}
 }

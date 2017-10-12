@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -48,10 +49,13 @@ public class PanelPower extends JPanel{
 	JButton saveButton;
 	JFileChooser fileChooser;
 	JButton textEaser;
-	JButton chartCreator;
+	JButton detailedChartCreator;
+	JButton mainChartCreator;
 	File file; 
 	Map<Double, Integer> totalGeneratedPower; 
 	Map<String, Map<Double, Integer>> totalGeneratedPowerChart = new TreeMap<String, Map<Double, Integer>>();
+	double fullLoadHoursSum = 0;
+	double generatedEnergySum = 0;
 	
 	PanelPower(){
 		setLayout(new GridBagLayout());
@@ -200,8 +204,10 @@ public class PanelPower extends JPanel{
 				}
 			});
 			resultsText.append("\n\n");
-			double fullLoadHoursSum = sumFullLoadHours.stream().mapToDouble(r -> r.doubleValue()).sum();
-			double generatedEnergySum = sumGeneratedPower.stream().mapToDouble(r -> r.doubleValue()).sum();
+			
+//	TODO remove next three rows
+			fullLoadHoursSum = sumFullLoadHours.stream().mapToDouble(r -> r.doubleValue()).sum();
+			generatedEnergySum = sumGeneratedPower.stream().mapToDouble(r -> r.doubleValue()).sum();
 			System.out.println("full load hours sum is: " + fullLoadHoursSum +"[MWh/y], total generater Power " + generatedEnergySum+"[MWh]");
 			
 			
@@ -242,24 +248,45 @@ public class PanelPower extends JPanel{
 		setPosition(4, 11, 1, 1);
 		add(textEaser, gbc);
 
-		// Create chart with measure data
-		chartCreator = new JButton("Chart");
-		chartCreator.addActionListener(p -> {
+		// Create chart with production results for every measured wind
+		detailedChartCreator = new JButton("Details Graph");
+		detailedChartCreator.addActionListener(p -> {
 			final String keyDescription = wtgList.getSelectedItem()+"-" + powerCurveList.getSelectedItem();
 			totalGeneratedPowerChart.put(keyDescription, totalGeneratedPower);
-			totalGeneratedPowerChart.forEach((k, v) -> {
-				v.forEach((u, t) -> {
-					System.out.println("iniciuj: " + k + " - " + u + " - " + v);
-				});
-			});
 			
-			MyChartPanel myChartPanel = new MyChartPanel("wind turbines in action", "generated power", totalGeneratedPowerChart);
+			MyChartPanel myChartPanel = new MyChartPanel("generated power", totalGeneratedPowerChart);			
 			myChartPanel.pack();
-			RefineryUtilities.centerFrameOnScreen(myChartPanel);
 			myChartPanel.setVisible(true);
 		});
 		setPosition(4, 12, 1, 1);
-		add(chartCreator, gbc);
+		add(detailedChartCreator, gbc);
+		
+		//	Create chart with summary of production for chosen turbine
+		mainChartCreator = new JButton("Final Graph");
+		mainChartCreator.addActionListener(p->{
+			double nominalPower = 0;
+			try{
+			nominalPower = dbAccess.getNominalWtgPower(wtgList.getSelectedIndex()+1)/1000;
+			} catch(Exception e){
+				e.printStackTrace();
+			}
+			final String keyDescription = wtgList.getSelectedItem()+"-" + powerCurveList.getSelectedItem();
+			totalGeneratedPowerChart.put(keyDescription, totalGeneratedPower);
+			
+//			totalGeneratedPowerChart.forEach((k,v) -> {
+//				v.values().forEach(System.out::println);
+//				System.out.println("SUma: " + k+ "::" + v.values().stream().collect(Collectors.summingInt(Integer::intValue))/1000);
+//			});
+			
+					
+			MyChartPanel myChartPanel = new MyChartPanel(totalGeneratedPowerChart, nominalPower);
+			myChartPanel.pack();
+			myChartPanel.setVisible(true);
+			
+		});
+		setPosition(4, 13, 1, 1);
+		add(mainChartCreator, gbc);
+		
 	}
 	
 	/**
@@ -284,9 +311,13 @@ public class PanelPower extends JPanel{
 	 */
 	public double convertkWhToMWhFullLoad(int kWh, int precision){
 		double doubleMWh = (double) kWh;
-		doubleMWh = precision*(doubleMWh/dbAccess.getWTGnominalPower(wtgList.getSelectedIndex()+1));
-		int intMWh = (int) doubleMWh/1;
-		doubleMWh = (double) intMWh / precision;		
+		try {
+			doubleMWh = precision*(doubleMWh/dbAccess.getNominalWtgPower(wtgList.getSelectedIndex()+1));
+			int intMWh = (int) doubleMWh/1;
+			doubleMWh = (double) intMWh / precision;	
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		return doubleMWh;
 	}
 	
