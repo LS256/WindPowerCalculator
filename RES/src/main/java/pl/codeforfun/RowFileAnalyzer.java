@@ -144,34 +144,78 @@ public class RowFileAnalyzer {
 	 * @param measuredWindData - this parameter is coming from object and keeps measured wind data
 	 * @return finalGeneratedPower - where key is file name with windData, and to this map is connected map with generated electricity for each wind speed
 	 */
-	public Map<String, Map<Double, Integer>> getGeneratedPower(Map<Double, Integer> tempPowerCurveMap){
+	public Map<String, Map<Double, Integer>> getGeneratedPower(Map<Double, Integer> tempPowerCurveMap, double shearFactor){
 		measuredWindDataMap.forEach((k,v) -> { 								
-			finalGeneratedPower.put(k, calculateProduction(v, tempPowerCurveMap));								
+			finalGeneratedPower.put(k, calculateProduction(v, tempPowerCurveMap, shearFactor));								
 			});
 	return finalGeneratedPower;
 	}
 	
 	/*
 	 * Method to calculate generated electricity in certain time period
+	 * To get real mean wind speed with correct precision mean wind speed has to be divided by 100 - like using scale factor 0.01
+	 * but to get more precise results tempPower curve has windSpeed precision precision of 0.1 m/s and therefore double dividing by 10 was used
 	 * @param measuredData - measured data in certain time period
 	 * @param temmpPowerCurve - power curve for WTG chosen by user
-	 * @return generatedPower - map with result of generated electricity
+	 * @return generatedPower - map with result of generated electricity 
 	 */
-	public Map<Double, Integer> calculateProduction(List<MeasuredWindData> measuredData, Map<Double, Integer> tempPowerCurveMap){
+	public Map<Double, Integer> calculateProduction(List<MeasuredWindData> measuredData, Map<Double, Integer> tempPowerCurveMap, double shearFactor){
 		Map<Double, Integer> generatedPower = new TreeMap<Double, Integer>();
 		measuredData.forEach(p -> {
-			//	to get real mean wind speed with correct precision mean wind speed has to be divided by 100 - like using scale factor 0.01
-			double z = (p.getvMean80m()/100);
-			if(z>25){
-			System.out.println("z: " + z + ", " + p.getDateStamp() +", " + p.getHour()+" - " + p.getvMean80m());
+		
+			int vMean = (int) ((p.getvMean80m()*shearFactor)/10);
+
+			double vMeanSimple =vMean / 10;	//	k /100;
+			
+			double vMeanExtended = vMean / 10.0;
+	
+//			System.out.println("simple=" + vMeanSimple+ ", extended=" + vMeanExtended);
+			
+			if(vMeanSimple>25){
+				vMeanSimple = 0;
+				vMeanExtended = 0;
 			}
-			if(generatedPower.get(z) == null) {
-				generatedPower.put(z, tempPowerCurveMap.get(z));
+			if(generatedPower.get(vMeanSimple) == null) {
+				generatedPower.put(vMeanSimple, tempPowerCurveMap.get(vMeanExtended));
 			} else {
-				generatedPower.put(z, generatedPower.get(z)+tempPowerCurveMap.get(z));
+				generatedPower.put(vMeanSimple, generatedPower.get(vMeanSimple)+tempPowerCurveMap.get(vMeanExtended));
 			}
-		});
+		}); 
+		
+//		generatedPower.forEach((k,v) -> System.out.println(k + " - " + v));
+		
 		return generatedPower;		
+	}
+	
+	
+	/**
+	 * Method to predict mean wind speed at certain hub height
+	 * To predict mean wind speed at certain hub height there are some possible solutions but from complexity and accuracy 
+	 * point of view this one is the easiest.
+	 * @param hubHeight - height where mean wind speed should be predicted
+	 * @return shearFactor - parameter which after multiply by mean wind speed at 80m will give predicted wind speed at certain height
+	 */
+	
+	public double calculateWindShareFactor(double hubHeight){
+	
+		List<Double> vMean60mList = new ArrayList<Double>();
+		List<Double> vMean80mList = new ArrayList<Double>();
+		
+		measuredWindDataMap.forEach((k,v) -> {
+			vMean60mList.add(v.stream().collect(Collectors.averagingDouble(t -> t.getvMean60m())));
+			vMean80mList.add(v.stream().collect(Collectors.averagingDouble(t -> t.getvMean80m())));	
+		});
+		
+		double vMean60m = vMean60mList.stream().collect(Collectors.averagingDouble(Double::doubleValue))/100;
+		double vMean80m = vMean80mList.stream().collect(Collectors.averagingDouble(Double::doubleValue))/100;
+		
+		double shearExponent = Math.log10(vMean80m/vMean60m) / Math.log10(80.0/60.0);
+		double shearFactor = Math.pow((hubHeight / 80.0), shearExponent);
+
+		double searchedWindSpeed = vMean80m * Math.pow((hubHeight / 80.0), shearExponent);
+		System.out.println("wind speed at " + hubHeight + " = " + searchedWindSpeed + " [m/s]  shearFactor=" + shearFactor );
+		
+		return shearFactor;
 	}
 	
 

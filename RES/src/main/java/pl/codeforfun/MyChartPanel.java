@@ -33,12 +33,7 @@ public class MyChartPanel extends JDialog {	//	ApplicationFrame {
 	 */
 	MyChartPanel(String chartTitle, Map<String, Map<Double, Integer>> generatedPowerMap){
 		JFreeChart barChart = ChartFactory.createBarChart(chartTitle, "Mean Wind Speed [m/s]", "Generated Power [MWh]", createDataset(generatedPowerMap), PlotOrientation.VERTICAL, true, true, false);
-    
-	    
-	    CategoryPlot plot = barChart.getCategoryPlot();
-        plot.setBackgroundPaint(new Color(0xEE, 0xEE, 0xFF));
-        plot.setDomainAxisLocation(AxisLocation.BOTTOM_OR_RIGHT);
-	    
+ 
 	    
 	    ChartPanel chartPanel = new ChartPanel(barChart);  
 	    chartPanel.setPreferredSize(new java.awt.Dimension( 1000 , 367 ) );        		    
@@ -54,7 +49,13 @@ public class MyChartPanel extends JDialog {	//	ApplicationFrame {
 	 */
 	MyChartPanel(Map<String, Map<Double, Integer>> totalGeneratedPowerChart, double nominalPower){
 		JFreeChart barChart = ChartFactory.createBarChart("Summary of main results", "Chosen wind turbine", "Generated Power [MWh]", createMainDataset(totalGeneratedPowerChart, nominalPower), PlotOrientation.VERTICAL, true, true, false);
-	    ChartPanel chartPanel = new ChartPanel(barChart);      
+	 
+	    CategoryPlot plot = barChart.getCategoryPlot();
+        plot.setBackgroundPaint(new Color(0xEE, 0xEE, 0xFF));
+        plot.setDomainAxisLocation(AxisLocation.BOTTOM_OR_RIGHT);
+ 
+	
+		ChartPanel chartPanel = new ChartPanel(barChart);      
 	    chartPanel.setPreferredSize(new java.awt.Dimension( 500 , 367 ) );        	
 	    
 	    add(chartPanel);
@@ -74,15 +75,17 @@ public class MyChartPanel extends JDialog {	//	ApplicationFrame {
 			tempGeneratedPowerMap.forEach((k, v) ->{
 				v.forEach((u, t) -> {
 					int tempT;
+//					int tempU;
 					if(t == null){
 						tempT = 0;
 					}
 					else {
 						tempT = t/1000;
+					
+						System.out.println(t +" - " + u);
 						dataset.addValue(tempT , k, u);
 					}
 				});
-				
 			});
 	      return dataset; 
 	   }
@@ -109,17 +112,8 @@ public class MyChartPanel extends JDialog {	//	ApplicationFrame {
 		return mainDataset; 
 	}
 	
+
 	
 	
-//	private CategoryDataset createMainDataset(Map<String, Map<Double, Integer>> tempGeneratedPowerMap){
-//		  final DefaultCategoryDataset mainDataset = new DefaultCategoryDataset(); 
-//		  tempGeneratedPowerMap.forEach((k, v) ->{
-//			  v.forEach((t,u) -> {
-//			  System.out.println("dla "+k+" wynik to: " + u);
-//			  });
-//		  });
-//		  
-//		
-//		return mainDataset; 
-//	}
+	
 }

@@ -20,6 +20,7 @@ import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -34,11 +35,15 @@ import org.jfree.ui.RefineryUtilities;
 
 public class PanelPower extends JPanel{
 	
+	//	TODO power curve linia 174 dostosowaæ do prêdkoœci 0.01
+	
+	
 	GridBagConstraints gbc = new GridBagConstraints();
 	RowFileAnalyzer rowFileAnalyzer = new RowFileAnalyzer();
 	DBaccess dbAccess = new DBaccess();
 	JComboBox wtgList; 
 	JComboBox powerCurveList; 
+	JComboBox wtgTower;
 	JTextArea analyzedFiles;
 	JScrollPane analyzedFilesScroll;
 	JButton loadButton;
@@ -61,7 +66,11 @@ public class PanelPower extends JPanel{
 		setLayout(new GridBagLayout());
 		gbc.insets = new Insets(5,5,5,5);
 		
-		//	create comboBox list with WTG writen in dataBase
+		//	create comboBox list with WTG written in dataBase
+		JLabel wtgListLabel = new JLabel("Turbine type");
+		setPosition(0, 0, 2, 1);
+		add(wtgListLabel, gbc);
+		
 		wtgList = new JComboBox();
 		try {
 			dbAccess.selectWTG().forEach(p -> wtgList.addItem(p.getWtgType()));
@@ -69,32 +78,62 @@ public class PanelPower extends JPanel{
 			e.printStackTrace();
 		}
 		wtgList.addActionListener(p -> {
+			buttonsDeactivation();
 			powerCurveList.removeAllItems();
+			wtgTower.removeAllItems();
 			try {
 				dbAccess.getPowerMode(wtgList.getSelectedIndex()+1).forEach(r -> powerCurveList.addItem(r));
+				dbAccess.getTowerHeight(wtgList.getSelectedIndex()+1).forEach(r -> wtgTower.addItem(r));
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
 		});
-		setPosition(0, 0, 2, 1);
+		setPosition(0, 1, 2, 1);
 		gbc.fill = GridBagConstraints.HORIZONTAL;
 		add(wtgList, gbc);
 		
-		// create comboBox list with power curve parameters depends on choosen WTG
+		// create comboBox list with power curve parameters depended on chosen WTG
+		JLabel powerCurveListLabel = new JLabel("Noie emision");
+		setPosition(2, 0, 2, 1);
+		add(powerCurveListLabel, gbc);
+		
 		powerCurveList = new JComboBox();
 		try {
 			dbAccess.getPowerMode(wtgList.getSelectedIndex()+1).forEach(r -> powerCurveList.addItem(r));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		setPosition(2, 0, 2, 1);
+		powerCurveList.addActionListener(p -> buttonsDeactivation());
+		setPosition(2, 1, 2, 1);
 		add(powerCurveList, gbc);
 		
+		
+		//	Create comboBox list with tower heights available for chosen windTurbine
+		JLabel wtgTowerLabel = new JLabel("Hub height");
+		setPosition(4, 0, 1, 1);
+		add(wtgTowerLabel, gbc);
+		wtgTower = new JComboBox();
+		try {
+			dbAccess.getTowerHeight(wtgList.getSelectedIndex()+1).forEach(r -> wtgTower.addItem(r));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		wtgTower.addActionListener(p->buttonsDeactivation());
+		setPosition(4, 1, 1, 1);
+		add(wtgTower, gbc);	
+		
+		gbc.insets = new Insets(5,5,5,5);
+		
 		// create text area where we will see added files with measured wind data
+		JLabel analyzedFilesLabel = new JLabel("Analyzed files");
+		setPosition(0,2,4,1);
+		add(analyzedFilesLabel, gbc);
+//		gbc.insets = new Insets(1,1,1,1);
+		
 		analyzedFiles = new JTextArea(5,5);
 		analyzedFiles.setEditable(false);
 		analyzedFilesScroll = new JScrollPane(analyzedFiles);
-		setPosition(0, 1, 4, 4);
+		setPosition(0, 3, 4, 4);
 		gbc.fill = GridBagConstraints.BOTH;
 		add(analyzedFilesScroll, gbc);
 		
@@ -102,8 +141,10 @@ public class PanelPower extends JPanel{
 		loadButton = new JButton("Load");
 		Map<String, String> loadedFiles = new TreeMap<String, String>();
 		loadButton.addActionListener(p->{
+	
 			fileChooser = new JFileChooser();
 			if(fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION){
+				calculateButton.setEnabled(true);
 				file = fileChooser.getSelectedFile();
 				if(loadedFiles.get(file.getName()) == null){
 					analyzedFiles.append(file.getName()+"\n");
@@ -113,7 +154,7 @@ public class PanelPower extends JPanel{
 				}
 			}
 		});
-		setPosition(4, 1, 1, 1);
+		setPosition(4, 3, 1, 1);
 		add(loadButton, gbc);
 		
 		//	create button for removing last loaded file
@@ -124,13 +165,18 @@ public class PanelPower extends JPanel{
 				analyzedFiles.setText("");
 				loadedFiles.forEach((k, v) -> analyzedFiles.append(k+"\n"));
 		});
-		setPosition(4, 3, 1, 1);
+		setPosition(4, 4, 1, 1);
 		add(removeButton, gbc);
 		
 		//	create button responsible for making calculation
 		calculateButton = new JButton("Calculate");
-
+		calculateButton.setEnabled(false);
 		calculateButton.addActionListener(p -> {
+			buttonsActivation();
+//			saveButton.setEnabled(true);
+//			textEaser.setEnabled(true);
+//			mainChartCreator.setEnabled(true);
+//			detailedChartCreator.setEnabled(true);
 			Map<Double, Integer> powerCurve;
 			totalGeneratedPower = new TreeMap<Double, Integer>();
 			Map<String, Map<Double, Integer>> calculatedPower = new TreeMap<String, Map<Double, Integer>>();
@@ -142,17 +188,27 @@ public class PanelPower extends JPanel{
 		
 			loadedFiles.forEach((k,v) -> rowFileAnalyzer.fileReader(v));
 			
+			double searchedHeight = Double.valueOf(wtgTower.getSelectedItem().toString());
+			double shearFactor = rowFileAnalyzer.calculateWindShareFactor(searchedHeight);
+			
+			
+			
 			try {
 				//	power curve map keeps parameters of power curve for chosen windTurbine
-				powerCurve = dbAccess.selectPowerCurve(wtgList.getSelectedIndex()+1, powerCurveParameters[0]);
-				calculatedPower = rowFileAnalyzer.getGeneratedPower(powerCurve);
-	
+				powerCurve = dbAccess.selectPowerCurve(wtgList.getSelectedIndex()+1, powerCurveParameters[0]);			
+				
+				calculatedPower = rowFileAnalyzer.getGeneratedPower(powerCurve, shearFactor);
+				
+				calculatedPower.forEach((k,v) -> System.out.println("caculatedPower: "+ k + " , " + v));
+				
 				resultsText.append("Results generated for: " + wtgList.getSelectedItem()+", " + powerCurveList.getSelectedItem()+"\n");
 				
 				//	Display in resultsText title of columns with generated power
 				for(int i = 0 ; i<47; i++) resultsText.append(" ");
 				powerCurve.forEach((k, v) -> {
-					resultsText.append("\t" + k + "[m/s]");
+					if(k%1 == 0 & k>=2){
+						resultsText.append("\t" + k + "[m/s]");
+					}
 				});
  				resultsText.append("\n");
 			
@@ -166,13 +222,13 @@ public class PanelPower extends JPanel{
 				String fileName = file.getName();
 				resultsText.append(fileName+"\t");
 				v.forEach((u,w) -> {
-					if(totalGeneratedPower.get(u) == null){
+					if((totalGeneratedPower.get(u) == null) & (u % 1 == 0)){
 						totalGeneratedPower.put(u, w);
 					} else {
 						totalGeneratedPower.put(u, w+totalGeneratedPower.get(u));
 					}		
 //					totalGeneratedPower.put(u, w);
-					if(u>=3 & u<=25){			
+					if(u>=2 & u<=25){			
 //						resultsText.append(w+"\t");	
 						resultsText.append(convertkWhToMWh(w, 100)+"\t");
 					} 
@@ -183,7 +239,7 @@ public class PanelPower extends JPanel{
 			resultsText.append("\nGenerated electricity MWh");
 			for(int i = 0 ; i<10; i++) resultsText.append(" ");
 			totalGeneratedPower.forEach((k, v) -> {
-				if(k>=3 & k<=25){
+				if(k>=2 & k<=25){
 //					resultsText.append("\t"+v);	
 					double generatedPower = convertkWhToMWh(v,100);
 					sumGeneratedPower.add(generatedPower);
@@ -197,7 +253,7 @@ public class PanelPower extends JPanel{
 			for(int i = 0 ; i<10; i++) resultsText.append(" ");
 
 			totalGeneratedPower.forEach((k, v) -> {
-				if(k>=3 & k<=25){
+				if(k>=2 & k<=25){
 					double fullLoadHours = convertkWhToMWhFullLoad(v, 100);
 					sumFullLoadHours.add(fullLoadHours);
 					resultsText.append("\t"+fullLoadHours);			
@@ -213,17 +269,22 @@ public class PanelPower extends JPanel{
 			
 		});
 		
-		setPosition(0, 5, 5, 1);
+		setPosition(0, 7, 5, 1);
 		add(calculateButton, gbc);
 		
 		// create text area where after calculation we will put results
+		JLabel resultTextLabel = new JLabel("Calculation results");
+		setPosition(0, 8, 1, 1);
+		add(resultTextLabel, gbc);
+		
 		resultsText = new JTextArea(10,10);
 		resultsTextScroll = new JScrollPane(resultsText);
-		setPosition(0, 10, 4, 4);
+		setPosition(0, 9, 5, 5);
 		add(resultsTextScroll, gbc);
 		
 		//	create button for saving data from resultsText
 		saveButton = new JButton("Save");
+		saveButton.setEnabled(false);
 		saveButton.addActionListener(p -> {
 			fileChooser = new JFileChooser();
 			fileChooser.setCurrentDirectory(new File("C://Users/"));
@@ -237,32 +298,35 @@ public class PanelPower extends JPanel{
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
-			}			
+			}		
 		});
-		setPosition(4, 10, 1, 1);
+		setPosition(0, 18, 1, 1);
 		add(saveButton, gbc);
 		
 		//	remove actual content of resultsText
 		textEaser = new JButton("Clean");
+		textEaser.setEnabled(false);
 		textEaser.addActionListener(p->resultsText.setText(""));
-		setPosition(4, 11, 1, 1);
+		setPosition(1, 18, 1, 1);
 		add(textEaser, gbc);
 
 		// Create chart with production results for every measured wind
 		detailedChartCreator = new JButton("Details Graph");
+		detailedChartCreator.setEnabled(false);
 		detailedChartCreator.addActionListener(p -> {
-			final String keyDescription = wtgList.getSelectedItem()+"-" + powerCurveList.getSelectedItem();
+			final String keyDescription = wtgList.getSelectedItem()+"-" + powerCurveList.getSelectedItem()+ " " + wtgTower.getSelectedItem()+"m";
 			totalGeneratedPowerChart.put(keyDescription, totalGeneratedPower);
 			
 			MyChartPanel myChartPanel = new MyChartPanel("generated power", totalGeneratedPowerChart);			
 			myChartPanel.pack();
 			myChartPanel.setVisible(true);
 		});
-		setPosition(4, 12, 1, 1);
+		setPosition(2, 18, 1, 1);
 		add(detailedChartCreator, gbc);
 		
 		//	Create chart with summary of production for chosen turbine
 		mainChartCreator = new JButton("Final Graph");
+		mainChartCreator.setEnabled(false);
 		mainChartCreator.addActionListener(p->{
 			double nominalPower = 0;
 			try{
@@ -270,22 +334,18 @@ public class PanelPower extends JPanel{
 			} catch(Exception e){
 				e.printStackTrace();
 			}
-			final String keyDescription = wtgList.getSelectedItem()+"-" + powerCurveList.getSelectedItem();
+			final String keyDescription = wtgList.getSelectedItem()+"-" + powerCurveList.getSelectedItem()+ " " + wtgTower.getSelectedItem()+"m";
 			totalGeneratedPowerChart.put(keyDescription, totalGeneratedPower);
-			
-//			totalGeneratedPowerChart.forEach((k,v) -> {
-//				v.values().forEach(System.out::println);
-//				System.out.println("SUma: " + k+ "::" + v.values().stream().collect(Collectors.summingInt(Integer::intValue))/1000);
-//			});
-			
 					
 			MyChartPanel myChartPanel = new MyChartPanel(totalGeneratedPowerChart, nominalPower);
 			myChartPanel.pack();
 			myChartPanel.setVisible(true);
 			
 		});
-		setPosition(4, 13, 1, 1);
+		setPosition(3, 18, 1, 1);
 		add(mainChartCreator, gbc);
+		
+		
 		
 	}
 	
@@ -334,6 +394,25 @@ public class PanelPower extends JPanel{
 		doubleMWh = (double) intMWh / precision;		
 		return doubleMWh;
 	}
-
+	
+	/**
+	 * Method responsible for buttons activation
+	 */
+	public void buttonsActivation(){
+		saveButton.setEnabled(true);
+		textEaser.setEnabled(true);
+		mainChartCreator.setEnabled(true);
+		detailedChartCreator.setEnabled(true);
+	}
+	
+	/**
+	 * Method responsible for buttons deactivation
+	 */
+	public void buttonsDeactivation(){
+		saveButton.setEnabled(false);
+		textEaser.setEnabled(false);
+		mainChartCreator.setEnabled(false);
+		detailedChartCreator.setEnabled(false);
+	}
 	
 }

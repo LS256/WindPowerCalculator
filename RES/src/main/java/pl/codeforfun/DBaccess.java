@@ -29,7 +29,7 @@ public class DBaccess {
 	private static final String USER = "LS256";
 	private static final String PASSWORD = "12345";
 	
-	private static final String WTG_QUERY = "SELECT wtg_type, wtg_power, hub_height, rotor_diameter from wtg";
+	private static final String WTG_QUERY = "SELECT wtg_type, wtg_power, rotor_diameter from wtg";
 
 
 	public void readDataBase(String query) throws Exception {
@@ -78,7 +78,7 @@ public class DBaccess {
 	public List<DBwtg> selectWTG() throws Exception {
 		List<DBwtg> wtgList = new LinkedList<DBwtg>();
 		try {
-			readDataBase("SELECT id, wtg_type, wtg_power, hub_height, rotor_diameter from wtg");
+			readDataBase("SELECT id, wtg_type, wtg_power, rotor_diameter from wtg");
 			int id, wtgPower;
 			String wtgType;
 			Double hubHeight, rotorDiameter;
@@ -87,9 +87,8 @@ public class DBaccess {
 					 id = resultSet.getInt(1);
 					 wtgType = resultSet.getString(2);
 					 wtgPower = resultSet.getInt(3);
-					 hubHeight = resultSet.getDouble(4);
-					 rotorDiameter = resultSet.getDouble(5);
-					 wtgList.add(new DBwtg(id, wtgType, wtgPower, hubHeight, rotorDiameter));				 
+					 rotorDiameter = resultSet.getDouble(4);
+					 wtgList.add(new DBwtg(id, wtgType, wtgPower, rotorDiameter));				 
 				 }
 		} catch(Exception e){
 			throw e;
@@ -159,21 +158,65 @@ public class DBaccess {
 	public Map<Double, Integer> selectPowerCurve(int ewID, String modeDescription) throws Exception {
 		Map<Double, Integer> powerCurveMap = new TreeMap<Double, Integer>();
 		try {
-			readDataBase("SELECT wind_speed, generated_power FROM power_curve WHERE ew_id="+ewID+" AND mode_description='"+modeDescription+"'");
+			readDataBase("SELECT wind_speed, generated_power FROM power_curve WHERE ew_id="+ewID+" AND mode_description='"+modeDescription+"' ORDER BY wind_speed");
 			Double windSpeed; 
 			int generatedPower;
 			
+			double previousWindSpeed = 0;
+			int previousGeneratedPower = 0;
+			int generatedPowerIncrease = 0;
+			
 				 while(resultSet.next()){
-					 windSpeed = resultSet.getDouble(1);
-					 generatedPower = resultSet.getInt(2);
-					 powerCurveMap.put(windSpeed, generatedPower);			 
+					 windSpeed = resultSet.getDouble(1);	// OLD
+					 generatedPower = resultSet.getInt(2);	//	OLD
+					 powerCurveMap.put(windSpeed, generatedPower);		// OLD	 
+					 
+					 
+					 generatedPowerIncrease=(int) ((generatedPower-previousGeneratedPower)/10);
+					 for(int i =1; i<10; i++){
+						 previousWindSpeed = ((previousWindSpeed * 10 ) + 1 ) / 10;
+						 previousGeneratedPower+= generatedPowerIncrease;		
+//						 System.out.println(previousWindSpeed);
+						 powerCurveMap.put(previousWindSpeed, previousGeneratedPower);
+					 }
+					
+					 previousWindSpeed = windSpeed;
+					 previousGeneratedPower = generatedPower;
 				 }
 		} catch(Exception e){
 			throw e;
 		} finally {
 			connection.close();
 		}
+//		powerCurveMap.forEach((k, v) -> System.out.println(k + "\t" + v));	
 		return powerCurveMap;
 	} 
+	
+	/** 
+	 * Method to get list with available WTGs tower
+	 * @param ewID - wtg id in dataBase
+	 * @return  tempWtgTowerList -list with available tower height for chosen wind turbine
+	 * @throws Exception 
+	 */
+	public List<String> getTowerHeight(int ewID) throws Exception {
+
+		List<String> tempWtgTowerList = new ArrayList<String>();
+		try {
+			readDataBase("SELECT hub_height FROM wtg_tower WHERE ew_id="+ewID);
+			
+			String towerHeight="";
+		
+				 while(resultSet.next()){
+					 towerHeight = resultSet.getString(1);
+					 tempWtgTowerList.add(towerHeight); 			 
+				 }
+		} catch(Exception e){
+			throw e;
+		} finally {
+			connection.close();
+		}
+		
+		return tempWtgTowerList;
+	}
 
 }
