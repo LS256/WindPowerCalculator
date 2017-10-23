@@ -3,6 +3,9 @@ package pl.codeforfun;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -19,7 +22,9 @@ import org.jfree.data.category.CategoryDataset;
 import org.jfree.data.category.DefaultCategoryDataset;
 import org.jfree.data.general.Dataset;
 import org.jfree.ui.ApplicationFrame;
-import org.jfree.chart.ChartPanel; 
+
+import org.jfree.chart.ChartPanel;
+import org.jfree.chart.ChartUtilities; 
 
 
 
@@ -48,6 +53,7 @@ public class MyChartPanel extends JDialog {	//	ApplicationFrame {
 	 * @param generatedPowerMap - map with generated power for each chosen wind generator
 	 */
 	MyChartPanel(Map<String, Map<Double, Integer>> totalGeneratedPowerChart, double nominalPower){
+	
 		JFreeChart barChart = ChartFactory.createBarChart("Summary of main results", "Chosen wind turbine", "Generated Power [MWh]", createMainDataset(totalGeneratedPowerChart, nominalPower), PlotOrientation.VERTICAL, true, true, false);
 	 
 	    CategoryPlot plot = barChart.getCategoryPlot();
@@ -56,11 +62,18 @@ public class MyChartPanel extends JDialog {	//	ApplicationFrame {
  
 	
 		ChartPanel chartPanel = new ChartPanel(barChart);      
-	    chartPanel.setPreferredSize(new java.awt.Dimension( 500 , 367 ) );        	
+	    chartPanel.setPreferredSize(new java.awt.Dimension( 500 , 367 ) );        	   
 	    
 	    add(chartPanel);
 	    
 	    this.setDefaultCloseOperation(this.DISPOSE_ON_CLOSE);
+
+// jpgChart = new File("jpgChart.jpg");
+//	    try {
+//			ChartUtilities.saveChartAsJPEG(jpgChart,  barChart,  300,  300);
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
 	}
 	
 	
@@ -100,8 +113,10 @@ public class MyChartPanel extends JDialog {	//	ApplicationFrame {
 		  final DefaultCategoryDataset mainDataset = new DefaultCategoryDataset();
 	
 			totalGeneratedPowerChart.forEach((k,v) -> {
+				String[] zet = k.split(" ");
+				double nomin = Double.valueOf(zet[zet.length-1]);
 				int powerSum = v.values().stream().collect(Collectors.summingInt(Integer::intValue))/1000;
-				int fullLoadHours = (int) (powerSum/(nominalPower));
+				int fullLoadHours = (int) (powerSum/ nomin);	//(nominalPower));
 				
 				mainDataset.addValue(powerSum, "Generated Power", k);
 				mainDataset.addValue(fullLoadHours, "Full Load hours", k);

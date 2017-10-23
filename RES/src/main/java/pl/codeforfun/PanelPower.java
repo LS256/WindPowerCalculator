@@ -3,35 +3,37 @@ package pl.codeforfun;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.time.LocalTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.stream.Collectors;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 
-import org.jfree.chart.ChartFactory;
-import org.jfree.chart.ChartUtilities;
-import org.jfree.chart.JFreeChart;
-import org.jfree.data.general.DefaultPieDataset;
-import org.jfree.ui.ApplicationFrame;
-import org.jfree.ui.RefineryUtilities;
+import com.itextpdf.io.image.ImageData;
+import com.itextpdf.io.image.ImageDataFactory;
+import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfWriter;
+import com.itextpdf.layout.Document;
+import com.itextpdf.layout.element.Image;
+import com.itextpdf.layout.element.Paragraph;
+
+
+
 
 public class PanelPower extends JPanel{
 	
@@ -61,6 +63,7 @@ public class PanelPower extends JPanel{
 	Map<String, Map<Double, Integer>> totalGeneratedPowerChart = new TreeMap<String, Map<Double, Integer>>();
 	double fullLoadHoursSum = 0;
 	double generatedEnergySum = 0;
+	
 	
 	PanelPower(){
 		setLayout(new GridBagLayout());
@@ -266,7 +269,15 @@ public class PanelPower extends JPanel{
 			generatedEnergySum = sumGeneratedPower.stream().mapToDouble(r -> r.doubleValue()).sum();
 			System.out.println("full load hours sum is: " + fullLoadHoursSum +"[MWh/y], total generater Power " + generatedEnergySum+"[MWh]");
 			
-			
+			double nominalPower = 0;
+			try{
+			nominalPower = dbAccess.getNominalWtgPower(wtgList.getSelectedIndex()+1)/1000;
+			} catch(Exception e){
+				e.printStackTrace();
+			}
+			final String keyDescription = wtgList.getSelectedItem()+"-" + powerCurveList.getSelectedItem()+ " " + wtgTower.getSelectedItem()+"m "+nominalPower;
+
+			totalGeneratedPowerChart.put(keyDescription, totalGeneratedPower);
 		});
 		
 		setPosition(0, 7, 5, 1);
@@ -314,8 +325,16 @@ public class PanelPower extends JPanel{
 		detailedChartCreator = new JButton("Details Graph");
 		detailedChartCreator.setEnabled(false);
 		detailedChartCreator.addActionListener(p -> {
-			final String keyDescription = wtgList.getSelectedItem()+"-" + powerCurveList.getSelectedItem()+ " " + wtgTower.getSelectedItem()+"m";
-			totalGeneratedPowerChart.put(keyDescription, totalGeneratedPower);
+			//	TODO
+			//	rebuild chart panel that is no longer using nominal power factor
+			double nominalPower = 0;
+//			try{
+//			nominalPower = dbAccess.getNominalWtgPower(wtgList.getSelectedIndex()+1)/1000;
+//			} catch(Exception e){
+//				e.printStackTrace();
+//			}
+//			final String keyDescription = wtgList.getSelectedItem()+"-" + powerCurveList.getSelectedItem()+ " " + wtgTower.getSelectedItem()+"m "+nominalPower;
+//			totalGeneratedPowerChart.put(keyDescription, totalGeneratedPower);
 			
 			MyChartPanel myChartPanel = new MyChartPanel("generated power", totalGeneratedPowerChart);			
 			myChartPanel.pack();
@@ -328,16 +347,21 @@ public class PanelPower extends JPanel{
 		mainChartCreator = new JButton("Final Graph");
 		mainChartCreator.setEnabled(false);
 		mainChartCreator.addActionListener(p->{
+			
+			//	TODO
+			//	rebuild chart panel that is no longer using nominal power factor
 			double nominalPower = 0;
-			try{
-			nominalPower = dbAccess.getNominalWtgPower(wtgList.getSelectedIndex()+1)/1000;
-			} catch(Exception e){
-				e.printStackTrace();
-			}
-			final String keyDescription = wtgList.getSelectedItem()+"-" + powerCurveList.getSelectedItem()+ " " + wtgTower.getSelectedItem()+"m";
-			totalGeneratedPowerChart.put(keyDescription, totalGeneratedPower);
-					
+//			try{
+//			nominalPower = dbAccess.getNominalWtgPower(wtgList.getSelectedIndex()+1)/1000;
+//			} catch(Exception e){
+//				e.printStackTrace();
+//			}
+//			final String keyDescription = wtgList.getSelectedItem()+"-" + powerCurveList.getSelectedItem()+ " " + wtgTower.getSelectedItem()+"m "+nominalPower;
+//			totalGeneratedPowerChart.put(keyDescription, totalGeneratedPower);
+//			System.out.println("description: " + keyDescription);
+			
 			MyChartPanel myChartPanel = new MyChartPanel(totalGeneratedPowerChart, nominalPower);
+			
 			myChartPanel.pack();
 			myChartPanel.setVisible(true);
 			
@@ -346,6 +370,65 @@ public class PanelPower extends JPanel{
 		add(mainChartCreator, gbc);
 		
 		
+		
+/*
+ * Method for generating report in PDF format
+ * 
+ */
+
+		
+		JButton pdfButton = new JButton("PDF");
+		
+		pdfButton.addActionListener(action -> {
+			
+			try {
+				
+			
+				 System.out.println("dd "+resultsText.getText());
+				 LocalTime localTime = LocalTime.now();
+				
+				 PdfWriter writer = new PdfWriter("x2.pdf");
+				 PdfDocument pdf = new PdfDocument(writer);
+				 Document document = new Document(pdf);
+				 
+				 document.add(new Paragraph("Analyzed files:"));
+				 document.add(new Paragraph(analyzedFiles.getText()));
+				 
+				 document.add(new Paragraph("Analyzed wind turbines: "));
+				 totalGeneratedPowerChart.forEach((k, v) ->  document.add(new Paragraph(k)));	 
+				 
+				 
+				 document.add(new Paragraph(localTime.toString()));
+
+				 
+				 ImageData preImg = ImageDataFactory.create("jpgChart.jpg");
+				 Image img = new Image(preImg);
+				 document.add(img);
+			
+				 document.add(new Paragraph(resultsText.getText()));
+	
+				 
+				 
+				 document.close();
+				
+			} catch (FileNotFoundException fe) {
+				fe.printStackTrace();
+			} catch (MalformedURLException e) {
+				
+				e.printStackTrace();
+			}		
+			
+			System.out.println(this.getSize().getHeight() + " - " + this.getSize().getWidth());
+			
+			
+//			totalGeneratedPowerChart.forEach((k, v) -> {
+//				v.forEach((t, u) -> System.out.println(k+ " - " + t + " - " + u));
+//			});
+			
+				
+		});
+		setPosition(4,18,1,1);
+		add(pdfButton, gbc);
 		
 	}
 	
