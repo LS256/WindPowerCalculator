@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -29,8 +30,10 @@ import com.itextpdf.io.image.ImageDataFactory;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
+import com.itextpdf.layout.element.Cell;
 import com.itextpdf.layout.element.Image;
 import com.itextpdf.layout.element.Paragraph;
+import com.itextpdf.layout.element.Table;
 
 
 
@@ -41,6 +44,7 @@ public class PanelPower extends JPanel{
 	
 	
 	GridBagConstraints gbc = new GridBagConstraints();
+	PdfGenerator pdfGenerator;
 	RowFileAnalyzer rowFileAnalyzer = new RowFileAnalyzer();
 	DBaccess dbAccess = new DBaccess();
 	JComboBox wtgList; 
@@ -61,8 +65,10 @@ public class PanelPower extends JPanel{
 	File file; 
 	Map<Double, Integer> totalGeneratedPower; 
 	Map<String, Map<Double, Integer>> totalGeneratedPowerChart = new TreeMap<String, Map<Double, Integer>>();
-	double fullLoadHoursSum = 0;
-	double generatedEnergySum = 0;
+	Map<String, Double> generatedPowerSummary = new TreeMap<String, Double>();
+	Map<String, Double> fullLoadHoursSummary = new TreeMap<String, Double>();
+//	double fullLoadHoursSum = 0;
+//	double generatedEnergySum = 0;
 	
 	
 	PanelPower(){
@@ -183,14 +189,15 @@ public class PanelPower extends JPanel{
 			Map<Double, Integer> powerCurve;
 			totalGeneratedPower = new TreeMap<Double, Integer>();
 			Map<String, Map<Double, Integer>> calculatedPower = new TreeMap<String, Map<Double, Integer>>();
-			List<Double> sumFullLoadHours = new ArrayList<Double>();
-			List<Double> sumGeneratedPower = new ArrayList<Double>();
+//			List<Double> sumFullLoadHours = new ArrayList<Double>();
+//			List<Double> sumGeneratedPower = new ArrayList<Double>();
 			
 			
 			String[] powerCurveParameters = powerCurveList.getSelectedItem().toString().split(" ");
 		
 			loadedFiles.forEach((k,v) -> rowFileAnalyzer.fileReader(v));
 			
+	
 			double searchedHeight = Double.valueOf(wtgTower.getSelectedItem().toString());
 			double shearFactor = rowFileAnalyzer.calculateWindShareFactor(searchedHeight);
 			
@@ -201,8 +208,6 @@ public class PanelPower extends JPanel{
 				powerCurve = dbAccess.selectPowerCurve(wtgList.getSelectedIndex()+1, powerCurveParameters[0]);			
 				
 				calculatedPower = rowFileAnalyzer.getGeneratedPower(powerCurve, shearFactor);
-				
-				calculatedPower.forEach((k,v) -> System.out.println("caculatedPower: "+ k + " , " + v));
 				
 				resultsText.append("Results generated for: " + wtgList.getSelectedItem()+", " + powerCurveList.getSelectedItem()+"\n");
 				
@@ -243,10 +248,11 @@ public class PanelPower extends JPanel{
 			for(int i = 0 ; i<10; i++) resultsText.append(" ");
 			totalGeneratedPower.forEach((k, v) -> {
 				if(k>=2 & k<=25){
-//					resultsText.append("\t"+v);	
+
 					double generatedPower = convertkWhToMWh(v,100);
-					sumGeneratedPower.add(generatedPower);
+//					sumGeneratedPower.add(generatedPower);
 					resultsText.append("\t"+generatedPower);
+//					resultsText.append("\t"+v);	
 				}
 			});
 			resultsText.append("\n");
@@ -258,26 +264,35 @@ public class PanelPower extends JPanel{
 			totalGeneratedPower.forEach((k, v) -> {
 				if(k>=2 & k<=25){
 					double fullLoadHours = convertkWhToMWhFullLoad(v, 100);
-					sumFullLoadHours.add(fullLoadHours);
-					resultsText.append("\t"+fullLoadHours);			
+//					sumFullLoadHours.add(fullLoadHours);
+					resultsText.append("\t"+fullLoadHours);		
+//					resultsText.append("\t"+v);
 				}
 			});
 			resultsText.append("\n\n");
-			
-//	TODO remove next three rows
-			fullLoadHoursSum = sumFullLoadHours.stream().mapToDouble(r -> r.doubleValue()).sum();
-			generatedEnergySum = sumGeneratedPower.stream().mapToDouble(r -> r.doubleValue()).sum();
-			System.out.println("full load hours sum is: " + fullLoadHoursSum +"[MWh/y], total generater Power " + generatedEnergySum+"[MWh]");
-			
+						
 			double nominalPower = 0;
 			try{
-			nominalPower = dbAccess.getNominalWtgPower(wtgList.getSelectedIndex()+1)/1000;
+			nominalPower = dbAccess.getNominalWtgPower(wtgList.getSelectedIndex()+1)/1000.0;
 			} catch(Exception e){
 				e.printStackTrace();
 			}
 			final String keyDescription = wtgList.getSelectedItem()+"-" + powerCurveList.getSelectedItem()+ " " + wtgTower.getSelectedItem()+"m "+nominalPower;
 
 			totalGeneratedPowerChart.put(keyDescription, totalGeneratedPower);
+		
+			//	Summarize total gnerated energy and full load hours
+			int generatedPower = totalGeneratedPower.values().stream().mapToInt(r -> r.intValue()).sum();
+			double fullLoadHours = generatedPower/ nominalPower; 
+		
+			//	TODO tak zrobiæ sumowanie full load hours i total generated power
+			totalGeneratedPowerChart.forEach((k,v) -> {
+				System.out.println("W stream: " + v.values().stream().collect(Collectors.summingInt(Integer::intValue))/1000);
+			});
+			
+			generatedPowerSummary.put(keyDescription, convertkWhToMWh(generatedPower, 100));
+			fullLoadHoursSummary.put(keyDescription, convertkWhToMWh(fullLoadHours, 100));			
+			
 		});
 		
 		setPosition(0, 7, 5, 1);
@@ -325,16 +340,7 @@ public class PanelPower extends JPanel{
 		detailedChartCreator = new JButton("Details Graph");
 		detailedChartCreator.setEnabled(false);
 		detailedChartCreator.addActionListener(p -> {
-			//	TODO
-			//	rebuild chart panel that is no longer using nominal power factor
-			double nominalPower = 0;
-//			try{
-//			nominalPower = dbAccess.getNominalWtgPower(wtgList.getSelectedIndex()+1)/1000;
-//			} catch(Exception e){
-//				e.printStackTrace();
-//			}
-//			final String keyDescription = wtgList.getSelectedItem()+"-" + powerCurveList.getSelectedItem()+ " " + wtgTower.getSelectedItem()+"m "+nominalPower;
-//			totalGeneratedPowerChart.put(keyDescription, totalGeneratedPower);
+
 			
 			MyChartPanel myChartPanel = new MyChartPanel("generated power", totalGeneratedPowerChart);			
 			myChartPanel.pack();
@@ -348,19 +354,7 @@ public class PanelPower extends JPanel{
 		mainChartCreator.setEnabled(false);
 		mainChartCreator.addActionListener(p->{
 			
-			//	TODO
-			//	rebuild chart panel that is no longer using nominal power factor
-			double nominalPower = 0;
-//			try{
-//			nominalPower = dbAccess.getNominalWtgPower(wtgList.getSelectedIndex()+1)/1000;
-//			} catch(Exception e){
-//				e.printStackTrace();
-//			}
-//			final String keyDescription = wtgList.getSelectedItem()+"-" + powerCurveList.getSelectedItem()+ " " + wtgTower.getSelectedItem()+"m "+nominalPower;
-//			totalGeneratedPowerChart.put(keyDescription, totalGeneratedPower);
-//			System.out.println("description: " + keyDescription);
-			
-			MyChartPanel myChartPanel = new MyChartPanel(totalGeneratedPowerChart, nominalPower);
+			MyChartPanel myChartPanel = new MyChartPanel(totalGeneratedPowerChart, 1);
 			
 			myChartPanel.pack();
 			myChartPanel.setVisible(true);
@@ -375,57 +369,10 @@ public class PanelPower extends JPanel{
  * Method for generating report in PDF format
  * 
  */
-
-		
-		JButton pdfButton = new JButton("PDF");
-		
+		JButton pdfButton = new JButton("PDF");		
 		pdfButton.addActionListener(action -> {
-			
-			try {
-				
-			
-				 System.out.println("dd "+resultsText.getText());
-				 LocalTime localTime = LocalTime.now();
-				
-				 PdfWriter writer = new PdfWriter("x2.pdf");
-				 PdfDocument pdf = new PdfDocument(writer);
-				 Document document = new Document(pdf);
-				 
-				 document.add(new Paragraph("Analyzed files:"));
-				 document.add(new Paragraph(analyzedFiles.getText()));
-				 
-				 document.add(new Paragraph("Analyzed wind turbines: "));
-				 totalGeneratedPowerChart.forEach((k, v) ->  document.add(new Paragraph(k)));	 
-				 
-				 
-				 document.add(new Paragraph(localTime.toString()));
-
-				 
-				 ImageData preImg = ImageDataFactory.create("jpgChart.jpg");
-				 Image img = new Image(preImg);
-				 document.add(img);
-			
-				 document.add(new Paragraph(resultsText.getText()));
-	
-				 
-				 
-				 document.close();
-				
-			} catch (FileNotFoundException fe) {
-				fe.printStackTrace();
-			} catch (MalformedURLException e) {
-				
-				e.printStackTrace();
-			}		
-			
-			System.out.println(this.getSize().getHeight() + " - " + this.getSize().getWidth());
-			
-			
-//			totalGeneratedPowerChart.forEach((k, v) -> {
-//				v.forEach((t, u) -> System.out.println(k+ " - " + t + " - " + u));
-//			});
-			
-				
+			String getAnalyzedFiles = analyzedFiles.getText();
+			pdfGenerator = new PdfGenerator(totalGeneratedPowerChart, getAnalyzedFiles);
 		});
 		setPosition(4,18,1,1);
 		add(pdfButton, gbc);
@@ -472,6 +419,14 @@ public class PanelPower extends JPanel{
 	 */
 	public double convertkWhToMWh(int kWh, int precision){
 		double doubleMWh = (double) kWh;
+		doubleMWh = precision*(doubleMWh/1000);
+		int intMWh = (int) doubleMWh/1;
+		doubleMWh = (double) intMWh / precision;		
+		return doubleMWh;
+	}
+	
+	
+	public double convertkWhToMWh(double doubleMWh, int precision){
 		doubleMWh = precision*(doubleMWh/1000);
 		int intMWh = (int) doubleMWh/1;
 		doubleMWh = (double) intMWh / precision;		

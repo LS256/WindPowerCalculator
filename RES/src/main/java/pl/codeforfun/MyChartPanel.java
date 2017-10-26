@@ -27,9 +27,17 @@ import org.jfree.chart.ChartPanel;
 import org.jfree.chart.ChartUtilities; 
 
 
-
+/** 
+ * Class for calculated results visualization
+ * @author LS256
+ *
+ */
 public class MyChartPanel extends JDialog {	//	ApplicationFrame {
 	PanelPower panelPower = new PanelPower();
+	
+	//	Constructo exists only for java requirements
+	protected MyChartPanel(){	
+	}
 	
 	/**
 	 * Constructor for preparing chart with detailed yield for every wind speed
@@ -39,14 +47,12 @@ public class MyChartPanel extends JDialog {	//	ApplicationFrame {
 	MyChartPanel(String chartTitle, Map<String, Map<Double, Integer>> generatedPowerMap){
 		JFreeChart barChart = ChartFactory.createBarChart(chartTitle, "Mean Wind Speed [m/s]", "Generated Power [MWh]", createDataset(generatedPowerMap), PlotOrientation.VERTICAL, true, true, false);
  
-	    
 	    ChartPanel chartPanel = new ChartPanel(barChart);  
 	    chartPanel.setPreferredSize(new java.awt.Dimension( 1000 , 367 ) );        		    
 	    add(chartPanel);
 	    this.setDefaultCloseOperation(this.DISPOSE_ON_CLOSE);
 	}
 	
-
 	/**
 	 * Constructor for preparing chart with summary of main parameters like yield and full load hours
 	 * @param chartTitle - tile to chart
@@ -57,23 +63,47 @@ public class MyChartPanel extends JDialog {	//	ApplicationFrame {
 		JFreeChart barChart = ChartFactory.createBarChart("Summary of main results", "Chosen wind turbine", "Generated Power [MWh]", createMainDataset(totalGeneratedPowerChart, nominalPower), PlotOrientation.VERTICAL, true, true, false);
 	 
 	    CategoryPlot plot = barChart.getCategoryPlot();
-        plot.setBackgroundPaint(new Color(0xEE, 0xEE, 0xFF));
         plot.setDomainAxisLocation(AxisLocation.BOTTOM_OR_RIGHT);
- 
-	
 		ChartPanel chartPanel = new ChartPanel(barChart);      
 	    chartPanel.setPreferredSize(new java.awt.Dimension( 500 , 367 ) );        	   
-	    
 	    add(chartPanel);
-	    
 	    this.setDefaultCloseOperation(this.DISPOSE_ON_CLOSE);
+	}
+	
+	
+	/**
+	 * Constructor for preparing chart in jpg file with detailed yield for every wind speed
+	 * @param chartTitle - tile to chart
+	 * @param generatedPowerMap - map with generated power for each chosen wind generator
+	 */
+	public void detailedChartJpg(String chartTitle, Map<String, Map<Double, Integer>> generatedPowerMap){
+		JFreeChart barChart = ChartFactory.createBarChart(chartTitle, "Mean Wind Speed [m/s]", "Generated Power [MWh]", createDataset(generatedPowerMap), PlotOrientation.VERTICAL, true, true, false);
+	    
+	    File jpgChart = new File("details.jpg");
+	    try {
+			ChartUtilities.saveChartAsJPEG(jpgChart,  barChart,  800,  500);
+	    } catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	
 
-// jpgChart = new File("jpgChart.jpg");
-//	    try {
-//			ChartUtilities.saveChartAsJPEG(jpgChart,  barChart,  300,  300);
-//		} catch (IOException e) {
-//			e.printStackTrace();
-//		}
+	/**
+	 * Constructor for preparing chart in jpg file with summary of main parameters like yield and full load hours
+	 * @param nominalPower - variable only for constructor overloading
+	 * @param generatedPowerMap - map with generated power for each chosen wind generator
+	 */
+	public void mainChartJpg(Map<String, Map<Double, Integer>> totalGeneratedPowerChart, double nominalPower){
+	
+		JFreeChart barChart = ChartFactory.createBarChart("Summary of main results", "Chosen wind turbine", "Generated Power [MWh]", createMainDataset(totalGeneratedPowerChart, nominalPower), PlotOrientation.VERTICAL, true, true, false);
+
+	    File jpgChart = new File("main.jpg");
+	    try {
+			ChartUtilities.saveChartAsJPEG(jpgChart,  barChart,  800,  500);
+	    } catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	
@@ -88,13 +118,11 @@ public class MyChartPanel extends JDialog {	//	ApplicationFrame {
 			tempGeneratedPowerMap.forEach((k, v) ->{
 				v.forEach((u, t) -> {
 					int tempT;
-//					int tempU;
 					if(t == null){
 						tempT = 0;
 					}
 					else {
-						tempT = t/1000;
-					
+						tempT = t/1000;	
 						System.out.println(t +" - " + u);
 						dataset.addValue(tempT , k, u);
 					}
