@@ -1,13 +1,18 @@
 package pl.codeforfun;
 
 import java.awt.Font;
-
+import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.time.LocalTime;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import javax.swing.JFileChooser;
 
 import com.itextpdf.io.image.ImageData;
 import com.itextpdf.io.image.ImageDataFactory;
@@ -25,36 +30,55 @@ import com.itextpdf.text.Phrase;
 
 
 
-
+/**
+ * Class to summarize results of user calculation. All results will be saved in pdf file
+ * @author LS256
+ *
+ */
 
 
 public class PdfGenerator {
 	
 	PanelPower panelPower;
 	MyChartPanel myChartPanel;
+	JFileChooser fileChooser;
+	PdfWriter writer;
+	PdfDocument pdf;
+	Document document;
+	
+	
 	protected PdfGenerator(){
 		
 	}
 	
 	PdfGenerator(Map<String, Map<Double, Integer>> totalGeneratedPowerChart, String analyzedFiles, RowFileAnalyzer rowFileAnalyzer) {
 		panelPower = new PanelPower();
-		try {
-			
-			myChartPanel = new MyChartPanel();
-			myChartPanel.detailedChartJpg("Generated Power", totalGeneratedPowerChart);
-			myChartPanel.mainChartJpg(totalGeneratedPowerChart, 1);
-			
-			LocalTime localTime = LocalTime.now();
 
+		
+		fileChooser = new JFileChooser();
+		fileChooser.setCurrentDirectory(new File("C://Users/"));
+		if(fileChooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION){
+			try {
+				
+				writer = new PdfWriter(fileChooser.getSelectedFile()+".pdf");
+				pdf = new PdfDocument(writer);
+				document = new Document(pdf);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}	
+		
+		
+		try {
 			int totalMeasuredHours = rowFileAnalyzer.getMeasuredHours();
 	 
-			PdfWriter writer = new PdfWriter("x4.pdf");
-			PdfDocument pdf = new PdfDocument(writer);
-			Document document = new Document(pdf);
-
-
+			//	Prepare a list of files taken under analysis
+			document.add(new Paragraph("Files taken under analysis").setBold());
+			document.add(new Paragraph(analyzedFiles).setMarginLeft(100F));
+			
+			
 			//	Prepare table of turbines used in user calculation
-			document.add(new Paragraph("Turbines used in user calculation and their main parameters"));
+			document.add(new Paragraph("Turbines used in user calculation and their main parameters").setBold());
 			float[] colWidths = {205, 80, 80, 80, 80 };
 			Table usedTurbinesTab = new Table(colWidths);
 			usedTurbinesTab.setWidth(525);
@@ -181,27 +205,29 @@ public class PdfGenerator {
 				detailedInfoTab.addCell(new Cell().setTextAlignment(TextAlignment.CENTER).add((int)(v.values().stream().collect(Collectors.summingInt(Integer::intValue))/(1000*wtgPower))+"").setBold());
 			 });
 
-				
-
 			 document.add(detailedInfoTab);
 			 
-	 
+			 
+			// Preparing charts	
+			myChartPanel = new MyChartPanel();
+			myChartPanel.detailedChartJpg("Generated Power", totalGeneratedPowerChart);
+			myChartPanel.mainChartJpg(totalGeneratedPowerChart, 1);
+				
+				
+			 //	add chart with detailed results
 			 ImageData preImg = ImageDataFactory.create("details.jpg");
 			 Image img = new Image(preImg);
 			 document.add(img);
 		
+			 //	Add chart with main results
 			 preImg = ImageDataFactory.create("main.jpg");
 			 img = new Image(preImg);
 			 document.add(img);
 			 
 			 
-			 System.out.println("size is: " + totalGeneratedPowerChart.size());
-			 
-			 
 			 document.close();
+
 			
-		} catch (FileNotFoundException fe) {
-			fe.printStackTrace();
 		} catch (MalformedURLException e) {
 			
 			e.printStackTrace();

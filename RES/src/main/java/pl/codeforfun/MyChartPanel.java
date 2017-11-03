@@ -28,14 +28,14 @@ import org.jfree.chart.ChartUtilities;
 
 
 /** 
- * Class for calculated results visualization
+ * Class for calculated results summary and visualization
  * @author LS256
  *
  */
-public class MyChartPanel extends JDialog {	//	ApplicationFrame {
+public class MyChartPanel extends JDialog {
 	PanelPower panelPower = new PanelPower();
 	
-	//	Constructo exists only for java requirements
+	//	Constructor exists only for java requirements
 	protected MyChartPanel(){	
 	}
 	
@@ -46,7 +46,8 @@ public class MyChartPanel extends JDialog {	//	ApplicationFrame {
 	 */
 	MyChartPanel(String chartTitle, Map<String, Map<Double, Integer>> generatedPowerMap){
 		JFreeChart barChart = ChartFactory.createBarChart(chartTitle, "Mean Wind Speed [m/s]", "Generated Power [MWh]", createDataset(generatedPowerMap), PlotOrientation.VERTICAL, true, true, false);
- 
+		barChart.getPlot().setBackgroundPaint(Color.WHITE);
+		 
 	    ChartPanel chartPanel = new ChartPanel(barChart);  
 	    chartPanel.setPreferredSize(new java.awt.Dimension( 1000 , 367 ) );        		    
 	    add(chartPanel);
@@ -61,7 +62,8 @@ public class MyChartPanel extends JDialog {	//	ApplicationFrame {
 	MyChartPanel(Map<String, Map<Double, Integer>> totalGeneratedPowerChart, double nominalPower){
 	
 		JFreeChart barChart = ChartFactory.createBarChart("Summary of main results", "Chosen wind turbine", "Generated Power [MWh]", createMainDataset(totalGeneratedPowerChart, nominalPower), PlotOrientation.VERTICAL, true, true, false);
-	 
+		barChart.getPlot().setBackgroundPaint(Color.WHITE);
+		 
 	    CategoryPlot plot = barChart.getCategoryPlot();
         plot.setDomainAxisLocation(AxisLocation.BOTTOM_OR_RIGHT);
 		ChartPanel chartPanel = new ChartPanel(barChart);      
@@ -78,7 +80,7 @@ public class MyChartPanel extends JDialog {	//	ApplicationFrame {
 	 */
 	public void detailedChartJpg(String chartTitle, Map<String, Map<Double, Integer>> generatedPowerMap){
 		JFreeChart barChart = ChartFactory.createBarChart(chartTitle, "Mean Wind Speed [m/s]", "Generated Power [MWh]", createDataset(generatedPowerMap), PlotOrientation.VERTICAL, true, true, false);
-	    
+	    barChart.getPlot().setBackgroundPaint(Color.WHITE);
 	    File jpgChart = new File("details.jpg");
 	    try {
 			ChartUtilities.saveChartAsJPEG(jpgChart,  barChart,  800,  500);
@@ -86,8 +88,6 @@ public class MyChartPanel extends JDialog {	//	ApplicationFrame {
 			e.printStackTrace();
 		}
 	}
-	
-	
 
 	/**
 	 * Constructor for preparing chart in jpg file with summary of main parameters like yield and full load hours
@@ -97,7 +97,8 @@ public class MyChartPanel extends JDialog {	//	ApplicationFrame {
 	public void mainChartJpg(Map<String, Map<Double, Integer>> totalGeneratedPowerChart, double nominalPower){
 	
 		JFreeChart barChart = ChartFactory.createBarChart("Summary of main results", "Chosen wind turbine", "Generated Power [MWh]", createMainDataset(totalGeneratedPowerChart, nominalPower), PlotOrientation.VERTICAL, true, true, false);
-
+		barChart.getPlot().setBackgroundPaint(Color.WHITE);
+		 
 	    File jpgChart = new File("main.jpg");
 	    try {
 			ChartUtilities.saveChartAsJPEG(jpgChart,  barChart,  800,  500);
@@ -150,13 +151,8 @@ public class MyChartPanel extends JDialog {	//	ApplicationFrame {
 				mainDataset.addValue(fullLoadHours, "Full Load hours", k);
 			});
 		  
-
-		
 		return mainDataset; 
 	}
-	
-
-	
 	
 	
 }
