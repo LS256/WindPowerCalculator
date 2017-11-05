@@ -146,6 +146,28 @@ public class DBaccess {
 		return nominalPower;
 	}
 	
+	/**
+	 * method to get rotor diameter of chosen wind turbine
+	 * @param 
+	 * @return 
+	 */
+	public String getRotorDiameter(String wtgDescription) throws Exception{
+		String rotorDiameter ="";
+		try {
+			readDataBase("SELECT rotor_diameter FROM wtg WHERE wtg_type='"+wtgDescription+"'");
+			
+				 while(resultSet.next()){
+					 rotorDiameter = resultSet.getString(1);	 
+				 }
+		} catch(Exception e){
+			throw e;
+		} finally {
+			connection.close();
+		}
+		return rotorDiameter;
+	}
+	
+	
 	
 	/** 
 	 * Method to get parameters of power curve described by windTurbine ID and it's mode description

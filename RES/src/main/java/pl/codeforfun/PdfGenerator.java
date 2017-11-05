@@ -45,6 +45,7 @@ public class PdfGenerator {
 	PdfWriter writer;
 	PdfDocument pdf;
 	Document document;
+	DBaccess dbAccess;
 	
 	
 	protected PdfGenerator(){
@@ -53,7 +54,7 @@ public class PdfGenerator {
 	
 	PdfGenerator(Map<String, Map<Double, Integer>> totalGeneratedPowerChart, String analyzedFiles, RowFileAnalyzer rowFileAnalyzer) {
 		panelPower = new PanelPower();
-
+		dbAccess = new DBaccess();
 		
 		fileChooser = new JFileChooser();
 		fileChooser.setCurrentDirectory(new File("C://Users/"));
@@ -63,13 +64,7 @@ public class PdfGenerator {
 				writer = new PdfWriter(fileChooser.getSelectedFile()+".pdf");
 				pdf = new PdfDocument(writer);
 				document = new Document(pdf);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}	
-		
-		
-		try {
+
 			int totalMeasuredHours = rowFileAnalyzer.getMeasuredHours();
 	 
 			//	Prepare a list of files taken under analysis
@@ -83,18 +78,25 @@ public class PdfGenerator {
 			Table usedTurbinesTab = new Table(colWidths);
 			usedTurbinesTab.setWidth(525);
 			String[] usedTurbinesTabHeader = {"Turbine model", "Power mode", "Nominal Power", "Tower height", "Rotor diameter"};
-			String[] usedTurbinesTabUnits = {"", "-", "[MW]", "[m]", "[m]"};
-			
+			String[] usedTurbinesTabUnits = {"-", "[MW]", "[m]", "[m]"};
+		
+			boolean twoRowsCell = true;
 			//	Add columns title to table with turbines used in calculation
 			for(String header : usedTurbinesTabHeader) {
-				usedTurbinesTab.addHeaderCell(new Cell().setTextAlignment(TextAlignment.CENTER).add(header).setBold());
+				if(twoRowsCell) {
+					Cell cell = new Cell(2,1).setTextAlignment(TextAlignment.CENTER).add(header).setBold();
+					usedTurbinesTab.addHeaderCell(cell);
+					twoRowsCell=false;
+				} else {
+					usedTurbinesTab.addHeaderCell(new Cell().setTextAlignment(TextAlignment.CENTER).add(header).setBold());
+				}
 			}
 
 			//	add columns units to table with turbines used in calculation
 			for(String units : usedTurbinesTabUnits) {
 				usedTurbinesTab.addHeaderCell(new Cell().setTextAlignment(TextAlignment.CENTER).add(units));
 			}
-
+			
 			//	fill table with parameters of used turbines
 			totalGeneratedPowerChart.forEach((k, v) -> {
 				String[] wtgPowerTab = k.split(" "); 
@@ -103,11 +105,20 @@ public class PdfGenerator {
 				String powerMode = wtgPowerTab[wtgPowerTab.length-6] + " " + wtgPowerTab[wtgPowerTab.length-5];
 				String wtgModel = wtgPowerTab[0] + " " + wtgPowerTab[1];
 				
+				
+				String wtgRotorDiameter ="unknown";
+				try {
+					wtgRotorDiameter = dbAccess.getRotorDiameter(wtgModel);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				
+				
 				usedTurbinesTab.addCell(new Cell().setTextAlignment(TextAlignment.CENTER).add(wtgModel));
 				usedTurbinesTab.addCell(new Cell().setTextAlignment(TextAlignment.CENTER).add(powerMode));
 				usedTurbinesTab.addCell(new Cell().setTextAlignment(TextAlignment.CENTER).add(nominalPower));
 				usedTurbinesTab.addCell(new Cell().setTextAlignment(TextAlignment.CENTER).add(towerHeight));
-				usedTurbinesTab.addCell(new Cell().setTextAlignment(TextAlignment.CENTER).add("unknown"));
+				usedTurbinesTab.addCell(new Cell().setTextAlignment(TextAlignment.CENTER).add(wtgRotorDiameter));
 			});
 			
 			document.add(usedTurbinesTab);
@@ -122,11 +133,18 @@ public class PdfGenerator {
 			keyResultsTab.setWidth(525);
 			 
 			String [] keyResultsTabHeader = {"Analyzed wind turbine", "Generated Energy", "Full load hours", "Capacity Factor", "Mean Wind speed"};
-			String [] keyResultsTabUnits = {" ", "[MWh]", "[h]", "[%]", "[m/s]"};
+			String [] keyResultsTabUnits = {"[MWh]", "[h]", "[%]", "[m/s]"};
 			
+			twoRowsCell = true;
 			//	Add columns title to table with main results
 			for(String header : keyResultsTabHeader){
-				keyResultsTab.addHeaderCell(new Cell().setTextAlignment(TextAlignment.CENTER).add(header).setBold());
+				if(twoRowsCell) {
+					Cell cell = new Cell(2,1).setTextAlignment(TextAlignment.CENTER).add(header).setBold();
+					keyResultsTab.addHeaderCell(cell);
+					twoRowsCell=false;
+				} else {
+					keyResultsTab.addHeaderCell(new Cell().setTextAlignment(TextAlignment.CENTER).add(header).setBold());
+				}
 			}
 			
 			//	add columns units to table with main results
@@ -212,13 +230,19 @@ public class PdfGenerator {
 			myChartPanel = new MyChartPanel();
 			myChartPanel.detailedChartJpg("Generated Power", totalGeneratedPowerChart);
 			myChartPanel.mainChartJpg(totalGeneratedPowerChart, 1);
-				
+
+
 				
 			 //	add chart with detailed results
 			 ImageData preImg = ImageDataFactory.create("details.jpg");
 			 Image img = new Image(preImg);
 			 document.add(img);
-		
+			 
+			//	Put empty 3 lines between charts
+			document.add(new Paragraph(""));
+			document.add(new Paragraph(""));
+			document.add(new Paragraph(""));
+			
 			 //	Add chart with main results
 			 preImg = ImageDataFactory.create("main.jpg");
 			 img = new Image(preImg);
@@ -231,7 +255,10 @@ public class PdfGenerator {
 		} catch (MalformedURLException e) {
 			
 			e.printStackTrace();
-		}		
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 		
 	
 

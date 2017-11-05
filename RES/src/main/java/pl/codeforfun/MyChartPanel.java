@@ -83,7 +83,7 @@ public class MyChartPanel extends JDialog {
 	    barChart.getPlot().setBackgroundPaint(Color.WHITE);
 	    File jpgChart = new File("details.jpg");
 	    try {
-			ChartUtilities.saveChartAsJPEG(jpgChart,  barChart,  800,  500);
+			ChartUtilities.saveChartAsJPEG(jpgChart,  barChart,  800,  450);
 	    } catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -101,7 +101,7 @@ public class MyChartPanel extends JDialog {
 		 
 	    File jpgChart = new File("main.jpg");
 	    try {
-			ChartUtilities.saveChartAsJPEG(jpgChart,  barChart,  800,  500);
+			ChartUtilities.saveChartAsJPEG(jpgChart,  barChart,  800,  450);
 	    } catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -124,7 +124,6 @@ public class MyChartPanel extends JDialog {
 					}
 					else {
 						tempT = t/1000;	
-						System.out.println(t +" - " + u);
 						dataset.addValue(tempT , k, u);
 					}
 				});
