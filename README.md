@@ -8,9 +8,9 @@ Ok. kolejne bardzo dobre założenie tylko.. tylko jak sprawdzić ile taka elekt
 
 Pierwszą wersją programu, był program działający w konsoli a który to:
 
-    miał wprowadzoną jedną krzywą mocy dla wybranej dla mnie turbiny wiatrowej,
-    nazwy plików z danymi pomiarowymi były wprowadzane bezpośrednio w kodzie programu
-    wyniki obliczeń były generowane bezpośrednio do pliku txt, któy można było następnie odpalić w excelu i szybko zrobić podsumowanie
+ - miał wprowadzoną jedną krzywą mocy dla wybranej dla mnie turbiny wiatrowej,
+ - nazwy plików z danymi pomiarowymi były wprowadzane bezpośrednio w kodzie programu
+ - wyniki obliczeń były generowane bezpośrednio do pliku txt, któy można było następnie odpalić w excelu i szybko zrobić podsumowanie
 
 Widać wyraźnie że taka wersja jest może i dobra ale jako rozwiązanie tymczasowe do zastosowania doraźnego, no bo przecież nie o to chodzi żeby ułatawiając sobie pracę jednocześnie ją komplikować i wszystkie dane zawsze wprowadzać ręcznie a do tego nie mieć możliwości wyboru elektrowni wiatrowej.
 
@@ -24,10 +24,10 @@ Na zakończenie obliczeń dostępne jest podsumowanie zarówno generowanej energ
 
 Dla tak przygotowanych obliczeń użytkownik ma do wyboru:
 
-    zapis wyników obliczeń do pliku txt (wyniki obliczeń które mogą zostać wykorzystane podczas dalszych analiz w excelu)
-    podgląd szczegółowych wyników obliczeń w formie graficznej,
-    podgląd podsumowania wyników obliczeń w formie graficznej
-    zapis wyników obliczeń do pliku pdf (wyniki prezentowane w formie czytelnej dla użytkownika (patrz przykładowy raport)
+ - zapis wyników obliczeń do pliku txt (wyniki obliczeń które mogą zostać wykorzystane podczas dalszych analiz w excelu)
+ - podgląd szczegółowych wyników obliczeń w formie graficznej,
+ - podgląd podsumowania wyników obliczeń w formie graficznej
+ - zapis wyników obliczeń do pliku pdf (wyniki prezentowane w formie czytelnej dla użytkownika (patrz przykładowy raport)
 
 Należy tutaj dodać obliczenia mogą być generowane dla kilku różnych elektrowni wiatrowych jak i elektrowni wiatrowych z inną wysokością wieży czy krzywą mocy.
 
