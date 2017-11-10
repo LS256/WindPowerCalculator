@@ -1,8 +1,5 @@
 package pl.codeforfun;
 
-import java.awt.BorderLayout;
-
-import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
@@ -11,16 +8,15 @@ import javax.swing.JOptionPane;
 
 public class MainWindow extends JFrame{
 	
+	private static final long serialVersionUID = 1L;
+
 	MainWindow(){
 		PanelPower panelPower = new PanelPower();
 		this.setTitle("powerCalculation");
-//		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		this.setResizable(true);	
 		this.setSize(550, 530);
 		this.add(panelPower);
 		this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-//		this.pack();
-		
 		
 		JMenuBar menuBar = new JMenuBar();
 		
@@ -41,7 +37,6 @@ public class MainWindow extends JFrame{
 		
 		setJMenuBar(menuBar);
 		
-
 		this.setVisible(true);
 	}
 }

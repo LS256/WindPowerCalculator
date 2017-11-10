@@ -11,7 +11,6 @@ public class MeasuredWindData {
 	
 	private String dateStamp;
 	private String hour;
-	double vMean100m;
 	private int vMean80m;
 	private int vMean60m;
 	private int vMean30m;

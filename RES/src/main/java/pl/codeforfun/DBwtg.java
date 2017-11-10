@@ -4,7 +4,6 @@ public class DBwtg {
 	private int id;
 	private String wtgType;
 	private int wtgPower;
-	private double hubHeight;
 	private double rotorDiameter;
 	
 	public int getId() {
@@ -31,14 +30,6 @@ public class DBwtg {
 		this.wtgPower = wtgPower;
 	}
 
-	public double getHubHeight() {
-		return hubHeight;
-	}
-
-	public void setHubHeight(double hubHeight) {
-		this.hubHeight = hubHeight;
-	}
-
 	public double getRotorDiameter() {
 		return rotorDiameter;
 	}
@@ -51,17 +42,16 @@ public class DBwtg {
 		
 	}
 	
-	public DBwtg(int id, String wtgType, int wtgPower, Double hubHeight, double rotorDiameter){
+	public DBwtg(int id, String wtgType, int wtgPower, double rotorDiameter){
 		this.id = id;
 		this.wtgType = wtgType;
 		this.wtgPower = wtgPower;
-		this.hubHeight = hubHeight;
 		this.rotorDiameter = rotorDiameter;
 	}
 	
 	@Override
 	public String toString() {
-		return wtgType + " with nominal power " + wtgPower +" kW, standard hub height is " + hubHeight + " and rotor diameter " + rotorDiameter;
+		return wtgType + " with nominal power " + wtgPower +" kW, " + " and rotor diameter " + rotorDiameter;
 		
 	}
 	

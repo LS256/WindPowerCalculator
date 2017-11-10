@@ -1,22 +1,14 @@
 package pl.codeforfun;
 
-import java.awt.Font;
-import java.io.BufferedWriter;
+
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.time.LocalTime;
 import java.util.Map;
 import java.util.stream.Collectors;
-
 import javax.swing.JFileChooser;
-
 import com.itextpdf.io.image.ImageData;
 import com.itextpdf.io.image.ImageDataFactory;
-import com.itextpdf.kernel.color.Color;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
@@ -24,18 +16,14 @@ import com.itextpdf.layout.element.Cell;
 import com.itextpdf.layout.element.Image;
 import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.element.Table;
+import com.itextpdf.layout.property.HorizontalAlignment;
 import com.itextpdf.layout.property.TextAlignment;
-import com.itextpdf.text.Phrase;
-
-
-
 
 /**
  * Class to summarize results of user calculation. All results will be saved in pdf file
  * @author LS256
  *
  */
-
 
 public class PdfGenerator {
 	
@@ -46,7 +34,6 @@ public class PdfGenerator {
 	PdfDocument pdf;
 	Document document;
 	DBaccess dbAccess;
-	
 	
 	protected PdfGenerator(){
 		
@@ -66,7 +53,9 @@ public class PdfGenerator {
 				document = new Document(pdf);
 
 			int totalMeasuredHours = rowFileAnalyzer.getMeasuredHours();
-	 
+			
+			document.add(new Paragraph("Wind Yield Analyzer  -  www.codeForFun.pl").setItalic().setHorizontalAlignment(HorizontalAlignment.CENTER));
+			document.add(new Paragraph(""));
 			//	Prepare a list of files taken under analysis
 			document.add(new Paragraph("Files taken under analysis").setBold());
 			document.add(new Paragraph(analyzedFiles).setMarginLeft(100F));
@@ -112,8 +101,7 @@ public class PdfGenerator {
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
-				
-				
+							
 				usedTurbinesTab.addCell(new Cell().setTextAlignment(TextAlignment.CENTER).add(wtgModel));
 				usedTurbinesTab.addCell(new Cell().setTextAlignment(TextAlignment.CENTER).add(powerMode));
 				usedTurbinesTab.addCell(new Cell().setTextAlignment(TextAlignment.CENTER).add(nominalPower));
@@ -151,8 +139,7 @@ public class PdfGenerator {
 			for(String unit : keyResultsTabUnits){
 				keyResultsTab.addHeaderCell(new Cell().setTextAlignment(TextAlignment.CENTER).add(unit));
 			}
-			 
-			
+			 			
 			totalGeneratedPowerChart.forEach((k,v) -> {
 				String[] wtgPowerTab = k.split(" "); 
 				double wtgPower = Double.parseDouble(wtgPowerTab[wtgPowerTab.length - 1]);
@@ -224,8 +211,7 @@ public class PdfGenerator {
 			 });
 
 			 document.add(detailedInfoTab);
-			 
-			 
+			 		 
 			// Preparing charts	
 			myChartPanel = new MyChartPanel();
 			myChartPanel.detailedChartJpg("Generated Power", totalGeneratedPowerChart);
@@ -236,7 +222,7 @@ public class PdfGenerator {
 			 //	add chart with detailed results
 			 ImageData preImg = ImageDataFactory.create("details.jpg");
 			 Image img = new Image(preImg);
-			 document.add(img);
+			 document.add(img.scale(0.625F,  0.625F));
 			 
 			//	Put empty 3 lines between charts
 			document.add(new Paragraph(""));
@@ -246,11 +232,10 @@ public class PdfGenerator {
 			 //	Add chart with main results
 			 preImg = ImageDataFactory.create("main.jpg");
 			 img = new Image(preImg);
-			 document.add(img);
-			 
+			 document.add(img.scale(0.625F, 0.625F)); 
+	
 			 
 			 document.close();
-
 			
 		} catch (MalformedURLException e) {
 			
@@ -258,10 +243,7 @@ public class PdfGenerator {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-	}
-		
-	
+	}			
 
 	}
-
 }

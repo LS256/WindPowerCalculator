@@ -1,18 +1,11 @@
 package pl.codeforfun;
 
-import java.awt.BorderLayout;
 import java.awt.Color;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.stream.Collectors;
-
 import javax.swing.JDialog;
-import javax.swing.JLabel;
-
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.AxisLocation;
@@ -20,9 +13,6 @@ import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.data.category.CategoryDataset;
 import org.jfree.data.category.DefaultCategoryDataset;
-import org.jfree.data.general.Dataset;
-import org.jfree.ui.ApplicationFrame;
-
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.ChartUtilities; 
 
@@ -30,9 +20,10 @@ import org.jfree.chart.ChartUtilities;
 /** 
  * Class for calculated results summary and visualization
  * @author LS256
- *
  */
 public class MyChartPanel extends JDialog {
+
+	private static final long serialVersionUID = 1L;
 	PanelPower panelPower = new PanelPower();
 	
 	//	Constructor exists only for java requirements
@@ -51,7 +42,6 @@ public class MyChartPanel extends JDialog {
 	    ChartPanel chartPanel = new ChartPanel(barChart);  
 	    chartPanel.setPreferredSize(new java.awt.Dimension( 1000 , 367 ) );        		    
 	    add(chartPanel);
-	    this.setDefaultCloseOperation(this.DISPOSE_ON_CLOSE);
 	}
 	
 	/**
@@ -69,9 +59,7 @@ public class MyChartPanel extends JDialog {
 		ChartPanel chartPanel = new ChartPanel(barChart);      
 	    chartPanel.setPreferredSize(new java.awt.Dimension( 500 , 367 ) );        	   
 	    add(chartPanel);
-	    this.setDefaultCloseOperation(this.DISPOSE_ON_CLOSE);
 	}
-	
 	
 	/**
 	 * Constructor for preparing chart in jpg file with detailed yield for every wind speed

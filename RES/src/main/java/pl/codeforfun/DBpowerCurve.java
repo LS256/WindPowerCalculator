@@ -33,7 +33,5 @@ public class DBpowerCurve {
 	public void setGeneratedPower(int generatedPower) {
 		this.generatedPower = generatedPower;
 	}
-	
-	
 
 }

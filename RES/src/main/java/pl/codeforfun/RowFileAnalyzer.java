@@ -2,17 +2,14 @@ package pl.codeforfun;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+//import org.apache.logging.log4j.LogManager;
+//import org.apache.logging.log4j.Logger;
 
 /**
  * class where we can analyze wind data from file
@@ -20,13 +17,15 @@ import org.apache.logging.log4j.Logger;
  */
 public class RowFileAnalyzer {
 	
-	static final Logger logger = LogManager.getLogger(RES.class.getName());
+//	static final Logger logger = LogManager.getLogger(RES.class.getName());
 //	List<MeasuredWindData> measuredWindData = new ArrayList<MeasuredWindData>();
 	Map<String, List<MeasuredWindData>> measuredWindDataMap = new TreeMap<String, List<MeasuredWindData>>();
 	Map<String, Map<Double, Integer>> finalGeneratedPower = new TreeMap<String, Map<Double, Integer>>();
 	
 	// eventually remove
-	Map<String, Map<Double, Double>> finalGeneratedPowerD = new TreeMap<String, Map<Double, Double>>();
+	Map<String, Map<Double, Integer>> finalGeneratedPowerD = new TreeMap<String, Map<Double, Integer>>();
+
+	
 	
 	public RowFileAnalyzer(){
 	
@@ -42,7 +41,6 @@ public class RowFileAnalyzer {
 		List<MeasuredWindData> measuredWindDataList = new ArrayList<MeasuredWindData>();
 		
 		try {
-			// 2011_01_80m.row
 			String fileContent = "";
 			String previousHour = "00";
 			String  dateStamp = "";
@@ -54,7 +52,6 @@ public class RowFileAnalyzer {
 			
 			FileInputStream fileInputStream = new FileInputStream(fileWithWindData);
 			BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(fileInputStream));
-//			long timeStart = System.currentTimeMillis();
 	
 			while((fileContent = bufferedReader.readLine() ) != null){
 				String[] analyzedRow = fileContent.split("\\t");
@@ -68,8 +65,6 @@ public class RowFileAnalyzer {
 						hourlySum30m = hourlySum30m + Integer.valueOf(analyzedRow[8]);
 						cnt++;	
 					} else{ 
-//						logger.info("{}\t{}\t{}\t{}\t{}", dateStamp, previousHour, hourlySum80m, hourlySum60m, hourlySum30m);
-						//	mean wind speed multiply by 10 to keep precision of mean wind speed to two numbers after comma. Final mean wind speed is received by additional dividing by 100
 						measuredWindDataList.add(new MeasuredWindData(dateStamp, previousHour, (10*hourlySum80m)/cnt, (10*hourlySum60m)/cnt, (10*hourlySum30m)/cnt));	
 						hourlySum80m = Integer.valueOf(analyzedRow[2]);
 						hourlySum60m = Integer.valueOf(analyzedRow[5]);
@@ -79,64 +74,15 @@ public class RowFileAnalyzer {
 					previousHour =  tempHourTab[0];
 				}	
 			}
-//			long totalTime = System.currentTimeMillis() - timeStart;
-//			System.out.println("czasOperacji " + totalTime);
-//			logger.info("{}\t{}\t{}\t{}\t{}", dateStamp, previousHour, hourlySum80m, hourlySum60m, hourlySum30m);
 			measuredWindDataList.add(new MeasuredWindData(dateStamp, previousHour, (10*hourlySum80m)/cnt, (10*hourlySum60m)/cnt, (10*hourlySum30m)/cnt));	
 			
 			bufferedReader.close();
 		} catch(Exception e) {
-			logger.error("nie znaleziono pliku {}", e);
+//			logger.error("nie znaleziono pliku {}", e);
 		}
 		
 		measuredWindDataMap.put(fileWithWindData, measuredWindDataList);
 	}
-	
-	/**
-	 * Show content of measuredWindDataMap
-	 * Method created for checking how data was placed into a map
-	 */
-	public void showData(){
-
-		long startTime =System.currentTimeMillis();
-		measuredWindDataMap.forEach((k,v) -> { 	
-												double r = v.stream().collect(Collectors.averagingInt(d -> d.getvMean80m()));
-												
-												System.out.println(k + " œrednia 80m: " + r);
-												//v.stream().collect(Collectors.averagingInt(coll)	
-												});
-		measuredWindDataMap.forEach((k, v) -> { String keyMap = k;
-												v.forEach(p -> logger.info("{} : {}\t{}\t{}\t{}\t{}", keyMap, p.getDateStamp(), p.getHour(), p.getvMean30m(), p.getvMean60m(), p.getvMean80m()));
-												logger.info("plik: {}", k);
-												} );
-		long total = System.currentTimeMillis() - startTime;
-	}
-	
-	/**
-	 * TODO finih forecasting Vmean to 100m. Had a problem because of wrong values of parameters
-	 * y had value -97433. Check if formula was correctly transformed. 
-	 */
-	public double find100mSpeed(double x80, double y80, double x60, double y60, double x30, double y30){
-		double a, b, c;
-		double z, p;
-		z = (y30+y80*(x30+x60-x80)-y60*(x30-x80+x60));
-		p = (x30*(x60-x80)+x60*x60*(x80-x30)+x80*x80*(x30-x60));
-		a = z / p;
-//		a = (y30+y80*(x30+x60-x80)-y60*(x30-x80+x60))/(x30*(x60-x80)+x60*x60*(x80-x30)+x80*x80*(x30-x60));
-		b = (y60-y80-a*(x60*x60-x80*x80))/(x60-x80);
-		c = y80-a*x80*x80-b*x80;
-//		logger.info("Wsp. a={}, b={}, c={}, z={}, p={}",a, b, c, z, p);	
-		
-		double y=0;
-		while(y<100){
-			x80+=0.05;
-			y=a*x80*x80 + b*x80 + c;
-			System.out.println(y);
-		}
-//		logger.info("na 100m Vmean = {}", x80);
-		return x80;
-	}
-	
 	
 	/**
 	 * Method for getting generated power base on measurement and selected powerCurve
@@ -168,23 +114,78 @@ public class RowFileAnalyzer {
 			double vMeanSimple =vMean / 10;	//	k /100;
 			
 			double vMeanExtended = vMean / 10.0;
-	
-//			System.out.println("simple=" + vMeanSimple+ ", extended=" + vMeanExtended);
 			
 			if(vMeanSimple>25){
 				vMeanSimple = 0;
 				vMeanExtended = 0;
 			}
+			
 			if(generatedPower.get(vMeanSimple) == null) {
 				generatedPower.put(vMeanSimple, tempPowerCurveMap.get(vMeanExtended));
 			} else {
 				generatedPower.put(vMeanSimple, generatedPower.get(vMeanSimple)+tempPowerCurveMap.get(vMeanExtended));
 			}
 		}); 
-		
-//		generatedPower.forEach((k,v) -> System.out.println(k + " - " + v));
-		
+	
 		return generatedPower;		
+	}
+	
+	/**
+	 * Method to convert generated energy from kWh to general unit of MWh
+	 * @param kWh - amount of generated kWh
+	 * @param precision - how many digits after comma should be included in result
+	 * @return doubleMWh - converted energy in MWh  
+	 */
+	public double convertkWhToMWh(int kWh, int precision){
+		double doubleMWh = (double) kWh;
+		doubleMWh = precision*(doubleMWh/1000);
+		int intMWh = (int) doubleMWh/1;
+		doubleMWh = (double) intMWh / precision;	
+
+		return doubleMWh;
+	}
+	
+	/**
+	 * Method to convert generated energy from kWh to general unit of MWh. 
+	 * Method overloaded for double input parameter
+	 * @param kWh - amount of generated kWh
+	 * @param precision - how many digits after comma should be included in result
+	 * @return doubleMWh - converted energy in MWh  
+	 */
+	
+	public double convertkWhToMWh(double kWh, int precision){
+		double doubleMWh = kWh;
+		doubleMWh = precision*(doubleMWh/1000);
+		int intMWh = (int) doubleMWh/1;
+		doubleMWh = (double) intMWh / precision;	
+
+		return doubleMWh;
+	}
+		
+	/**
+	 * Method to predict shear exponent at certain hub height
+	 * @param hubHeight - height where mean wind speed should be predicted
+	 * @return searchedWubdSpeed - mean wind speed calculated at required hub height
+	 */
+	
+	public double getMeanWindSpeed(double hubHeight){
+	
+		List<Double> vMean60mList = new ArrayList<Double>();
+		List<Double> vMean80mList = new ArrayList<Double>();
+		
+		measuredWindDataMap.forEach((k,v) -> {
+			vMean60mList.add(v.stream().collect(Collectors.averagingDouble(t -> t.getvMean60m())));
+			vMean80mList.add(v.stream().collect(Collectors.averagingDouble(t -> t.getvMean80m())));	
+		});
+		
+		double vMean60m = vMean60mList.stream().collect(Collectors.averagingDouble(Double::doubleValue))/100;
+		double vMean80m = vMean80mList.stream().collect(Collectors.averagingDouble(Double::doubleValue))/100;
+		
+		double shearExponent = Math.log10(vMean80m/vMean60m) / Math.log10(80.0/60.0);
+
+		double searchedWindSpeed = vMean80m * Math.pow((hubHeight / 80.0), shearExponent);
+		
+		return searchedWindSpeed;
 	}
 	
 	
@@ -196,7 +197,7 @@ public class RowFileAnalyzer {
 	 * @return shearFactor - parameter which after multiply by mean wind speed at 80m will give predicted wind speed at certain height
 	 */
 	
-	public double calculateWindShareFactor(double hubHeight){
+	public double calculateWindSpeed(double hubHeight){
 	
 		List<Double> vMean60mList = new ArrayList<Double>();
 		List<Double> vMean80mList = new ArrayList<Double>();
@@ -211,12 +212,24 @@ public class RowFileAnalyzer {
 		
 		double shearExponent = Math.log10(vMean80m/vMean60m) / Math.log10(80.0/60.0);
 		double shearFactor = Math.pow((hubHeight / 80.0), shearExponent);
-
-		double searchedWindSpeed = vMean80m * Math.pow((hubHeight / 80.0), shearExponent);
-		System.out.println("wind speed at " + hubHeight + " = " + searchedWindSpeed + " [m/s]  shearFactor=" + shearFactor );
 		
 		return shearFactor;
 	}
 	
+	/**
+	 * Method to calculate hours of loaded measurement
+	 * @return totalMeasuredHours - hours of measured wind speed loaded into the program
+	 */
+	
+	public int getMeasuredHours() {
+		 List<Integer> monthlyMeasuredHours = new ArrayList<Integer>();
 
+		 measuredWindDataMap.forEach((k, v) -> {
+		 	monthlyMeasuredHours.add(v.size());
+		 });
+		 
+		 int totalMeasuredHours = monthlyMeasuredHours.stream().collect(Collectors.summingInt(Integer::intValue));
+		 return totalMeasuredHours;
+	}
+	
 }

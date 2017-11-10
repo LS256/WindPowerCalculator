@@ -10,8 +10,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import com.mysql.jdbc.PreparedStatement;
-
 /**
  * 
  * @author LS256
@@ -21,53 +19,28 @@ import com.mysql.jdbc.PreparedStatement;
 public class DBaccess {
 	private Connection connection = null;
 	private Statement statement = null;
-	private PreparedStatement preparedStatement = null;
 	private ResultSet resultSet = null;
 
-	//	Data base access paramenters
+//	Data base access paramenters for database located on localhost
 	private static final String DB_ADDRESS = "jdbc:mysql://localhost:3306/res_wind?autoReconnect=true&useSSL=false";
 	private static final String USER = "LS256";
 	private static final String PASSWORD = "12345";
 	
-	private static final String WTG_QUERY = "SELECT wtg_type, wtg_power, rotor_diameter from wtg";
+	
 
+	
 
 	public void readDataBase(String query) throws Exception {
 		try{
 			 Class.forName("com.mysql.jdbc.Driver");
 			 connection =  DriverManager.getConnection(DB_ADDRESS, USER, PASSWORD);
+	
 			 statement = connection.createStatement();
 			 resultSet = statement.executeQuery(query);		 
 		} catch(Exception e){
+			e.printStackTrace();
 			throw e;
 		}
-	}
-	
-	/** 
-	 * to deleted. other method was created for this task
-	 * Method to get parameters of power curve described by windTurbine ID and it's mode description
-	 * @param wtgID - wtg id in dataBase
-	 * @param modeDesription - wtg power mode in data base
-	 * @return tempWtgPowerCurve -list with power curve for asked wind turbine
-	 * @throws Exception 
-	 */
-	public List<DBpowerCurve> selectedPowerCurve(int ewID, String modeDescription) throws Exception {
-		List<DBpowerCurve> tempWtgPowerCurve = new ArrayList<DBpowerCurve>();
-		try {
-			readDataBase("SELECT ew_id, mode_description, ew_noise, wind_speed, generated_power FROM power_curve WHERE ew_id="+ewID+" AND mode_description='"+modeDescription+"'");
-			int generatedPower;
-			double windSpeed;
-			
-				 while(resultSet.next()){
-					 windSpeed = resultSet.getDouble(4);
-					 generatedPower = resultSet.getInt(5);		 
-					 tempWtgPowerCurve.add(new DBpowerCurve(windSpeed, generatedPower));			 
-				 }
-		} catch(Exception e){
-			throw e;
-		} 
-		
-		return tempWtgPowerCurve;
 	}
 	
 	/**
@@ -81,7 +54,7 @@ public class DBaccess {
 			readDataBase("SELECT id, wtg_type, wtg_power, rotor_diameter from wtg");
 			int id, wtgPower;
 			String wtgType;
-			Double hubHeight, rotorDiameter;
+			Double rotorDiameter;
 			
 				 while(resultSet.next()){
 					 id = resultSet.getInt(1);
@@ -189,16 +162,15 @@ public class DBaccess {
 			int generatedPowerIncrease = 0;
 			
 				 while(resultSet.next()){
-					 windSpeed = resultSet.getDouble(1);	// OLD
-					 generatedPower = resultSet.getInt(2);	//	OLD
-					 powerCurveMap.put(windSpeed, generatedPower);		// OLD	 
+					 windSpeed = resultSet.getDouble(1);	
+					 generatedPower = resultSet.getInt(2);	
+					 powerCurveMap.put(windSpeed, generatedPower);		 
 					 
 					 
 					 generatedPowerIncrease=(int) ((generatedPower-previousGeneratedPower)/10);
 					 for(int i =1; i<10; i++){
 						 previousWindSpeed = ((previousWindSpeed * 10 ) + 1 ) / 10;
 						 previousGeneratedPower+= generatedPowerIncrease;		
-//						 System.out.println(previousWindSpeed);
 						 powerCurveMap.put(previousWindSpeed, previousGeneratedPower);
 					 }
 					
@@ -209,8 +181,7 @@ public class DBaccess {
 			throw e;
 		} finally {
 			connection.close();
-		}
-//		powerCurveMap.forEach((k, v) -> System.out.println(k + "\t" + v));	
+		}	
 		return powerCurveMap;
 	} 
 	
@@ -237,7 +208,6 @@ public class DBaccess {
 		} finally {
 			connection.close();
 		}
-		
 		return tempWtgTowerList;
 	}
 
